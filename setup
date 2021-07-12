@@ -1,0 +1,48 @@
+#!/usr/bin/bash
+
+SH=$(basename $SHELL)
+
+if [[ $1 == "install" ]]
+then
+  if [[ $SH == "zsh" ]]
+  then
+    grep -q "dotfiles prompt=@ location=" ~/.zshrc
+    if [[ $? -gt "0" ]]
+    then
+      printf "\ndotfiles prompt=@ location=\"$2\"" >> ~/.zshrc
+    else
+      printf "\e[92mtermux-dotfiles\e[0m already installed.\n"
+      exit 1
+    fi
+  elif [[ $SH == "bash" ]]
+  then
+    grep -q "dotfiles prompt=@ location=" ~/.bashrc
+    if [[ $? -gt "0" ]]
+    then
+      printf "\ndotfiles prompt=@ location=\"$2\"" >> ~/.bashrc
+    else
+      printf "\e[92mtermux-dotfiles\e[0m already installed.\n"
+      exit 1
+    fi
+  fi
+  cp src/program/dotfiles $PREFIX/bin
+  cp src/color/onedark.colors ~/.termux/colors.properties
+  printf "\e[92mtermux-dotfiles\e[0m successful installed.\nNow you have to restart termux.\n"
+
+elif [[ $1 == "remove" ]]
+then
+  if [[ $SH == "zsh" ]]
+  then
+  sed -i '/dotfiles prompt=@ location=/d' ~/.zshrc
+
+elif [[ $SH == "bash" ]]
+then
+  sed -i '/dotfiles prompt=@ location=/d' ~/.bashrc
+fi
+  printf "\e[92mtermux-dotfiles\e[0m removed successfully.\n"
+
+else
+  printf "weather location]──────────────────┐\n"
+  printf "run \e[92m./$(basename $0) install \e[7;92mindia\e[0m ◂────────┘\e[0m\n"
+  exit 1
+fi
