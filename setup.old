@@ -6,20 +6,20 @@ if [[ $1 == "install" ]]
 then
   if [[ $SH == "zsh" ]]
   then
-    grep -q "dotfiles prompt=0" ~/.zshrc
+    grep -q "dotfiles prompt=@ location=" ~/.zshrc
     if [[ $? -gt "0" ]]
     then
-      printf "\ndotfiles prompt=0\"$2\"" >> ~/.zshrc
+      printf "\ndotfiles prompt=@ location=\"$2\"" >> ~/.zshrc
     else
       printf "\e[92mtermux-dotfiles\e[0m already installed.\n"
       exit 1
     fi
   elif [[ $SH == "bash" ]]
   then
-    grep -q "dotfiles prompt=0" ~/.bashrc
+    grep -q "dotfiles prompt=@ location=" ~/.bashrc
     if [[ $? -gt "0" ]]
     then
-      printf "\ndotfiles prompt=0\"$2\"" >> ~/.bashrc
+      printf "\ndotfiles prompt=@ location=\"$2\"" >> ~/.bashrc
     else
       printf "\e[92mtermux-dotfiles\e[0m already installed.\n"
       exit 1
@@ -33,19 +33,16 @@ elif [[ $1 == "remove" ]]
 then
   if [[ $SH == "zsh" ]]
   then
-  sed -i '/dotfiles prompt=0/d' ~/.zshrc
+  sed -i '/dotfiles prompt=@ location=/d' ~/.zshrc
 
 elif [[ $SH == "bash" ]]
 then
-  sed -i '/dotfiles prompt=0/d' ~/.bashrc
+  sed -i '/dotfiles prompt=@ location=/d' ~/.bashrc
 fi
   printf "\e[92mtermux-dotfiles\e[0m removed successfully.\n"
 
 else
-  printf "install command]─────────────┐\n"
-  printf "run \e[92m./$(basename $0) install ◂────────┘\e[0m\n\n"
-
-  printf "remove command]──────────────┐\n"
-  printf "run \e[92m./$(basename $0) remove ◂─────────┘\e[0m\n"
+  printf "weather location]──────────────────┐\n"
+  printf "run \e[92m./$(basename $0) install \e[7;92mindia\e[0m ◂────────┘\e[0m\n"
   exit 1
 fi

@@ -8,7 +8,7 @@
 Note : [Termux-API](https://play.google.com/store/apps/details?id=com.termux.api) must be required to run this program.
 
 ```
-git clone https://github.com/abhackerofficial/Termux-dotfiles
+git clone https://github.com/imegeek/Termux-dotfiles
 cd Termux-dotfiles
-./setup install <weather location>
+./setup install
 ```
