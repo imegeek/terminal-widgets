@@ -7,8 +7,8 @@ here = os.path.abspath(os.path.dirname(__file__))
 with codecs.open(os.path.join(here, "README.md"), encoding="utf-8") as fh:
     long_description = "\n" + fh.read()
 
-VERSION = '1.0'
-DESCRIPTION = 'Show informative widgets on your terminal screen.'
+VERSION = '1.1'
+DESCRIPTION = 'A fully functional sprogram for Terminal to show information about system, display, shell, package and many more.'
 
 # Setting up
 setup(
@@ -23,10 +23,9 @@ setup(
         'console_scripts': ['twidgets = twidgets:main'],
     },
     packages=find_packages(),
-    install_requires=['rich', "requests"],
+    install_requires=["psutil", "rich", "requests"],
     keywords=['python', 'style', 'terminal', "widgets"],
     classifiers=[
-        "Development Status :: 1 - Planning",
         "Intended Audience :: Developers",
         "Programming Language :: Python :: 3",
         "Operating System :: Unix",
