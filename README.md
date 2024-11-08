@@ -166,34 +166,33 @@ python3 -m twidgets
 
 Terminal-Widgets supports the following command line options for customization and control:
 
-**-h, --help**               Show this help message and exit.
-**--configs**                Display the configuration file.
-**--widgets**                List built-in widgets and their values.
-**--stdout**                 Disable colors and ASCII graphics, displaying only plain text.
-**--json**                   Output widget data as a JSON object.
-**--no-badge**               Display widgets without badge styling.
-**--color-bars**             Enable color bars in terminal widgets.
-**--text {detailed, compact}**
-                         Set text mode for terminal widgets:
+- **-h, --help**               Show this help message and exit.
+- **--configs**                Display the configuration file.
+- **--widgets**                List built-in widgets and their values.
+- **--stdout**                 Disable colors and ASCII graphics, displaying only plain text.
+- **--json**                   Output widget data as a JSON object.
+- **--no-badge**               Display widgets without badge styling.
+- **--color-bars**             Enable color bars in terminal widgets.
+- **--text {detailed, compact}** Set text mode for terminal widgets:
                          - 'detailed' includes extended information
                          - 'compact' shows concise info (default: compact)
-**--color [normal, vivid, random, custom]**
+- **--color [normal, vivid, random, custom]**
                          Select color mode for terminal widgets (default: normal).
-**--logo [pacman, linux, windows, macos, android]**
+- **--logo [pacman, linux, windows, macos, android]**
                          Choose a logo to display before widgets
                          (default: auto, based on system).
-**--show [logo, widgets]**   Specify what to display: 'logo' or 'widgets'.
-**--align [left, center]**   Set alignment mode for terminal widgets (default: center).
-**--direction [row, column]**
+- **--show [logo, widgets]**   Specify what to display: 'logo' or 'widgets'.
+- **--align [left, center]**   Set alignment mode for terminal widgets (default: center).
+- **--direction [row, column]**
                          Choose layout direction for widgets (default: row).
-**--weather location**       Set the location for the weather widget.
-**--weather-api API_KEY**    Provide OpenWeather API key for weather data.
-**--bypass-system-api**      Bypass system API requirement checks.
-**-c, --config file**        Specify a JSON configuration file to load.
-**--column length**          Set the number of widgets per row.
-**--column-gap length**      Set gap between widgets in each column.
-**--row-gap length**         Set gap between widgets in each row.
-**--margin length**          Set whitespace lines before and after execution.
+- **--weather location**       Set the location for the weather widget.
+- **--weather-api API_KEY**    Provide OpenWeather API key for weather data.
+- **--bypass-system-api**      Bypass system API requirement checks.
+- **-c, --config file**        Specify a JSON configuration file to load.
+- **--column length**          Set the number of widgets per row.
+- **--column-gap length**      Set gap between widgets in each column.
+- **--row-gap length**         Set gap between widgets in each row.
+- **--margin length**          Set whitespace lines before and after execution.
 
 These options allow users to customize the behavior and appearance of Terminal-Widgets according to their preferences.
 
