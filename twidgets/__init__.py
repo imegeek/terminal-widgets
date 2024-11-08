@@ -1,14 +1,32 @@
-from time import time
+import cpuinfo
+from .logo import Logo
 from io import StringIO
-from threading import Thread
+from rich.text import Text
+from time import time, sleep
 from rich.console import Console
+from itertools import zip_longest
 from  datetime import datetime, date
+from rich_argparse import RichHelpFormatter
 from concurrent.futures import ThreadPoolExecutor
-import os, re, sys, json, random, argparse, platform, requests, subprocess
+from .system import system, hostname, arch, release
+import os, re, sys, json, ctypes, random, argparse, requests, subprocess
 
+if not system == "android":
+    import psutil
+
+logo = Logo()
+console = Console()  # Create a Console object for rich console output
 pyversion = sys.version.split()[0]  # Get the Python version
 window_rows, window_columns = os.get_terminal_size()  # Get the size of the terminal window
 window_size = f"{window_rows}×{window_columns}"
+
+# Define custom color using hex code
+RichHelpFormatter.styles = {
+    "argparse.args": "#60bfff b",
+    "argparse.help": "#d2ddff",
+    "argparse.metavar": "#9e9e9e",
+    "argparse.text": "underline"
+}
 
 HOME = os.path.expanduser("~")  # Get the path to the user's home directory
 # Construct the path to the configuration file within the user's home directory
@@ -21,10 +39,23 @@ if not os.path.isfile(CONFIG_PATH):
         # Open the configuration file in write mode and write an empty string to it
         f.write("")
 
+try:
+    weather_api = json.load(open(CONFIG_PATH))["weather_api"]
+except Exception:
+    weather_api = None
+
+text_mode = {
+    "detailed": "includes extended information",
+    "compact": "short, less detailed"
+}
 color_mode = ["normal", "vivid", "random", "custom"]
+align_mode = ["left", "center"]
+direction_mode = ["row", "column"]
 
 parser = argparse.ArgumentParser(
-    epilog="See full documentation at: https://github.com/imegeek/terminal-widgets"
+    description="A fully functional program for Terminal to show information about system, display, shell, package and many more.",
+    epilog="See full documentation at: https://github.com/imegeek/terminal-widgets",
+    formatter_class=RichHelpFormatter
 )
 
 parser.add_argument(
@@ -52,6 +83,42 @@ parser.add_argument(
 )
 
 parser.add_argument(
+    "--no-badge",
+    action='store_true',
+    help="Show widgets without badge style."
+)
+
+parser.add_argument(
+    "--color-bars",
+    action='store_true',
+    help="Show color bars in terminal widgets."
+)
+
+parser.add_argument(
+    "--text",
+    choices=[key for key in text_mode],
+    default=list(text_mode.keys())[-1],
+    metavar=text_mode,
+    help="Choose text mode for terminal widgets. (default: compact)"
+)
+
+parser.add_argument(
+    "--color",
+    choices=color_mode,
+    default=color_mode[0],
+    metavar=color_mode,
+    help="Choose color mode for terminal widgets. (default: normal)"
+)
+
+parser.add_argument(
+    "--logo",
+    choices=logo.list(),
+    default=system,
+    metavar=logo.list(),
+    help="Choose an logo art that appear before widgets. ( default: auto (system default logo) )"
+)
+
+parser.add_argument(
     "--show",
     choices=["logo", "widgets"],
     metavar=["logo", "widgets"],
@@ -60,11 +127,18 @@ parser.add_argument(
 )
 
 parser.add_argument(
-    "--color",
-    choices=color_mode,
-    default=color_mode[0],
-    metavar=color_mode,
-    help="Choose an color mode for terminal widgets."
+    "--align",
+    choices=align_mode,
+    metavar=align_mode,
+    help="Choose align mode for terminal widgets. (default: center)"
+)
+
+parser.add_argument(
+    "--direction",
+    choices=direction_mode,
+    default=direction_mode[-1],
+    metavar=direction_mode,
+    help="Choose direction mode for terminal widgets. (default: row)"
 )
 
 parser.add_argument(
@@ -72,6 +146,19 @@ parser.add_argument(
     dest="location",
     metavar="location",
     help="Set weather location to show in widgets."
+)
+
+parser.add_argument(
+    "--weather-api",
+    default=weather_api,
+    metavar="API_KEY",
+    help="Set Open Weather API KEY."
+)
+
+parser.add_argument(
+    "--bypass-system-api",
+    action='store_true',
+    help="Turn off API checking for required system."
 )
 
 parser.add_argument(
@@ -85,21 +172,56 @@ parser.add_argument(
     type=int,
     default=5,
     metavar="length",
-    help="Specify the number of columns that will be displayed for each row."
+    help="Specify the number of widget that will be displayed for each row."
 )
 
 parser.add_argument(
-    "--whitespace",
+    "--column-gap",
+    type=int,
+    default=2,
+    metavar="length",
+    help="Specify the gap between widgets that will be displayed for each column."
+)
+
+parser.add_argument(
+    "--row-gap",
+    type=int,
+    default=1,
+    metavar="length",
+    help="Specify the gap between widgets that will be displayed for each row."
+)
+
+parser.add_argument(
+    "--margin",
     type=lambda x: min(int(x), 10),
     default=0,
     metavar="length",
-    help="Specify the number of whitespaces that will be displayed before and after execute."
+    help="Specify the number of whitespaces line that will be displayed before and after execute."
 )
 
 args = parser.parse_args()  # Parse the command-line arguments
 
-if args.column < 3:
-    print("Ensure that the length of the column is more than two.")
+if args.column < 1:
+    print("Ensure that the length of the column is atleast one.")
+    sys.exit(1)
+
+if args.column_gap < 1:
+    print("Ensure that the length of the column gap is atleast one.")
+    sys.exit(1)
+
+if args.align:
+    align = args.align
+else:
+    align = "center"
+
+if args.direction == "row":
+    align = "left"
+    if not args.align == "left" and args.align:
+        print(f"The align: '{args.align}' setting is only compatible with a direction: 'column'.")
+        sys.exit(1)
+
+if args.location and not args.weather_api:
+    console.print(f"Set Open Weather API_KEY through argument or config file to proceed.\n[b]argument[/]: --weather-api <API_KEY>\n[b]config file[/]: \"weather_api\": \"<API_KEY>\" at [b u]{CONFIG_PATH}[/]\n\nGet API_KEY at https://openweathermap.org/api")
     sys.exit(1)
 
 # Check if a custom configuration file path is provided as a command-line argument
@@ -116,13 +238,73 @@ if args.config:
         print(f"'{file}' does not exist.\nPlease provide a valid file path.")
         sys.exit(1)
 
-t = datetime.now()  # Get the current time
-__time__ = f"{t.hour}:{t.minute}"  # Format the current time as hours:minutes
+current_time = datetime.now()  # Get the current time
 
-# Get today's date and format it as "Day of the week, Month Day"
-today = date.today().strftime("%a, %b %d")
+if args.text == "detailed":
+    # Format the time to include AM/PM
+    __time__ = current_time.strftime("%I:%M %p")
+    # Get today's date and format it as "Day of the week, Month Day"
+    today = date.today().strftime("%a, %D")
+else:
+    __time__ = f"{current_time.hour}:{current_time.minute}"  # Format the current time as hours:minutes
+    # Get today's date and format it as "Day of the week, Month Day"
+    today = date.today().strftime("%a, %b %d")
 
-console = Console()  # Create a Console object for rich console output
+def contains_escape_code(text):
+    # Extended pattern for ANSI and ASCII escape codes, including cursor movements and other control codes
+    ansi_ascii_pattern = r'\x1B\[[0-9;?]*[A-Za-z]|\x1B[EF]'
+
+    # Check if the text contains ANSI or ASCII escape codes
+    if re.search(ansi_ascii_pattern, text):
+        return True
+    else:
+        return False
+    
+def cleaned_string(text):
+    is_contains_escape_code = contains_escape_code(text)
+
+    if is_contains_escape_code:
+        # Remove all matched ANSI escape codes and other escape sequences
+        cleaned_text = re.sub(r'\x1B\[[0-?9;]*[mK]|\\n|\\t|\\r|\\b|\\f|\\v|\\0', '', text)
+    else:
+        # Remove all occurrences of text within square brackets (inclusive)
+        cleaned_text = re.sub(r'\[.*?\]', '', text)
+
+    return cleaned_text
+
+def print_align(string, source=console.width, align=align, end=""):
+    is_contains_escape_code = contains_escape_code(string)
+    cleaned_lines = cleaned_string(string).splitlines()
+    lines = string.splitlines()
+    width = source
+
+    if isinstance(source, str):
+        width = len(max(cleaned_lines))
+
+    # Calculate the maximum length of the lines
+    max_length = max(len(line) for line in cleaned_lines)
+
+    # Determine padding based on alignment
+    if align == "left":
+        padding = ""
+    else:  # center alignment
+        # Calculate the total padding needed to center the logo in the terminal
+        padding = " " * int(((width - max_length) // 2) + 2)
+
+    aligned_lines = []
+    
+    for line in lines:
+        # Add the aligned line to the list
+        aligned_lines.append(padding + line)
+        
+    aligned_text = "\n".join(aligned_lines)
+    if is_contains_escape_code:
+        console.print(Text.from_ansi(aligned_text), end=end)
+    else:
+        console.print(aligned_text, end=end)
+    if end == "\r":
+        return end + " " * int(len(line) + len(padding))
+    # console.print(*aligned_lines, end=end)
 
 def generate_random_color(colors, min_distance=100):
     while True:
@@ -243,6 +425,35 @@ if args.configs:
             print("No configuration found.")
     sys.exit(0)
 
+color_codes = {
+    "white":   white,
+    "black":   black,
+    "red":     red,      
+    "green":   green,  
+    "yellow":  yellow,
+    "sky":     sky,      
+    "purple":  purple,
+    "cyan":    cyan
+}
+
+def is_superuser():
+    """
+    Returns True if the script is running with superuser (admin) privileges,
+    otherwise False.
+    """
+    
+    # Check for superuser on Unix-based systems
+    if os.name == 'posix':
+        return os.geteuid() == 0
+
+    # Check for superuser on Windows
+    elif os.name == 'nt':
+        try:
+            return ctypes.windll.shell32.IsUserAnAdmin() != 0
+        except:
+            return False
+    return False
+
 def convert_size(size_in_bytes):
     """
     Convert the size in bytes to a more human-readable format with appropriate units.
@@ -279,32 +490,51 @@ def convert_size(size_in_bytes):
     # Return the converted size and its corresponding unit
     return size_in_bytes, selected_unit
 
-logo = "\n"*args.whitespace
-
-logo += f"""[b]
-[{yellow}]  ▄███████▄  [{green}]   ▄██████▄   [{sky}]   ▄██████▄   [{red}]   ▄██████▄   [{cyan}]   ▄██████▄   
-[{yellow}]  ▄█████████▀▀ [{green}] ▄[{white}]█▀█[{green}]██[{white}]█▀█[{green}]██▄ [{sky}] ▄[{white}]█▀█[{sky}]██[{white}]█▀█[{sky}]██▄ [{red}] ▄[{white}]█▀█[{red}]██[{white}]█▀█[{red}]██▄ [{cyan}] ▄[{white}]█▀█[{cyan}]██[{white}]█▀█[{cyan}]██▄   
-[{yellow}] ████████▀     [{green}] █[{white}]▄▄█[{green}]██[{white}]▄▄█[{green}]███ [{sky}] █[{white}]▄▄█[{sky}]██[{white}]▄▄█[{sky}]███ [{red}] █[{white}]▄▄█[{red}]██[{white}]▄▄█[{red}]███ [{cyan}] █[{white}]▄▄█[{cyan}]██[{white}]▄▄█[{cyan}]███   
-[{yellow}] ████████▄     [{green}] ████████████ [{sky}] ████████████ [{red}] ████████████ [{cyan}] ████████████   
-[{yellow}]  ▀█████████▄▄ [{green}] ██▀██▀▀██▀██ [{sky}] ██▀██▀▀██▀██ [{red}] ██▀██▀▀██▀██ [{cyan}] ██▀██▀▀██▀██   
-[{yellow}]    ▀███████▀  [{green}] ▀   ▀  ▀   ▀ [{sky}] ▀   ▀  ▀   ▀ [{red}] ▀   ▀  ▀   ▀ [{cyan}] ▀   ▀  ▀   ▀   
-[/]"""
+margin = "\n"*args.margin
 
 try:
-    # Try to access the ANDROID_ROOT environment variable
-    android = os.environ["ANDROID_ROOT"]
+    custom_logo_path = json.load(open(CONFIG_PATH, encoding="utf-8"))["logo"]
+    custom_logo =  [ line.replace('\\33', '\033') for line in custom_logo_path]
 
-    # Check if "/system" is in the value of the ANDROID_ROOT environment variable
-    if "/system" in android:
-        system = "android"
+    if custom_logo:
+        logo =  "\n".join(custom_logo)
 except Exception:
-    # If there's an exception (e.g., the ANDROID_ROOT environment variable doesn't exist),
-    # use psutil and platform to determine the system
-    import psutil
-    system = platform.system().lower()  # Get the lowercase platform name
-    if system == "darwin":
-        # If the platform is macOS (Darwin), set the system variable to "macos"
-        system = "macos"
+    logo = logo.select(args.logo).format(**color_codes)
+    
+if args.direction == "row":
+    cleaned_logo = cleaned_string(logo)
+    logo_len = len(cleaned_logo.splitlines())
+
+    max_logo_width_len = len(max(cleaned_logo.splitlines()))
+    alongside_width = max_logo_width_len + 2
+
+def truncate_text(text):
+    """
+    Truncates the text if it exceeds the available window width, adding an ellipsis if truncated.
+
+    Parameters:
+    - text (str): The text to display.
+    - alongside_width (int): The width occupied by elements alongside the text.
+    - window_rows (int): The total available width of the window in characters.
+
+    Returns:
+    - str: The original or truncated text with an ellipsis if necessary.
+    """
+
+    try:
+        # Calculate the total width by adding alongside width and the text length
+        total_width = alongside_width + len(cleaned_string(text)) + 5        
+    except Exception:
+        total_width = len(cleaned_string(text)) + 5
+    
+    # Determine the remaining width by subtracting total width from available window rows
+    remaining_width = window_rows - total_width
+    
+    # If the remaining width is negative, truncate the text and add an ellipsis
+    if total_width > window_rows:
+        text = text[:remaining_width] + "\u2026"  # "\u2026" is the unicode for ellipsis (…)
+    
+    return text
 
 def getCols(data):
     cols = [line.strip().split() for line in data]
@@ -339,23 +569,6 @@ def insert_dict(dict_, index, key, value):
 
     # create a new dictionary using keys and values list
     return dict(zip(keys, values))
-    
-def lget(lst, index, default=None):
-    """
-    Custom implementation of list get method.
-
-    Args:
-        lst (list): The list to access.
-        index (int): The index of the element to access in the list.
-        default: The default value to return if the index is out of range (default is None).
-
-    Returns:
-        The element at the specified index in the list if it exists, else the default value.
-    """
-    try:
-        return lst[index]
-    except Exception:
-        return default
 
 class Icon():
     user    = ""
@@ -368,7 +581,7 @@ class Icon():
     window  = ""
     arch    = "󰘚"
     cpu     = ""
-    ram     = ""
+    ram     = ""
     storage = "󰋊"
     volume  = "󰕾"
     signal  = ""
@@ -386,9 +599,12 @@ class Icon():
     "󰗠", "", ""
     ]
 
-    battery = [
+    battery_list = [
     "󰁺","󰁻","󰁼","󰁽","󰁾","󰁿","󰂀","󰂁","󰂂","󰁹","󰂄"
     ]
+
+    battery = {str(index):value for index, value in enumerate(battery_list)}
+    battery["-1"] = battery.pop(str(len(battery) - 1))
 
     weather = {
     "Clear":"",
@@ -418,44 +634,43 @@ class Icon():
     # If the current system is not found in the dictionary, default to an status icon.
     os = os.get(system, status[2])
 
-class System(Icon):
-    def badge(self, color, icon, name):
+    def badge(self, text:str, color:str = None, icon:str = None, no_badge:str = args.no_badge):
         """
-        Generate a badge with specified color, icon, and name.
+        Generate a badge with specified color, icon, and text.
 
         Args:
-        self: The instance of the class (assuming it's a method within a class).
         color (str): The color of the badge.
         icon (str): The icon string containing the icon and possibly a number.
-        name (str): The name to display alongside the badge.
+        text (str): The text to display alongside the badge.
 
         Returns:
         str: The generated badge.
         """
-        # Extract the number from the icon string using regular expression
-        number = ''.join(re.findall(r'-?\d+', icon))
 
-        # Remove non-alphabetic characters from the icon string using regular expression
-        icon = re.sub(r'[^a-zA-Z]', '', icon)
+        text = truncate_text(text)
 
-        # Check if a number is extracted from the icon string
-        if number:
-            # If a number exists, check if the specified index in the icon attribute is not None and if name is not None
-            if not getattr(self, icon)[int(number)] == None or not name == None:
-                # If conditions are met, return the badge with the specified color, icon, and name
-                return f"[{black}]{self.circle[0]}[on {black}][{color}]{getattr(self, icon)[int(number)]}[/] [b white]{name}[/][/][{black}]{self.circle[1]}"
-            else:
-                # If conditions are not met, return an empty string
-                return ''
+        if no_badge:
+            badge = {
+                "left": "",
+                "right": ""
+            }
         else:
-            # If no number is extracted from the icon string, check if the icon attribute is not None and if name is not None
-            if not getattr(self, icon) == None or not name == None:
-                # If conditions are met, return the badge with the specified color, icon, and name
-                return f"[{black}]{self.circle[0]}[on {black}][{color}]{getattr(self, icon)}[/] [b white]{name}[/][/][{black}]{self.circle[1]}"
-            else:
-                # If conditions are not met, return an empty string
-                return ''
-            
+            badge = {
+                "left": f"[{black}]{self.circle[0]}[on {black}]",
+                "right": f"[/][{black}]{self.circle[1]}"
+            }
+
+        if icon and color and text:
+            return f"{badge["left"]}[{color}]{icon}[/] [b white]{text}[/]{badge["right"]}"
+        elif not icon and not color and text:
+            return f"{badge["left"]}[b white]{text}[/]{badge["right"]}"
+        elif not icon and text:
+            return f"{badge["left"]}[b white][{color}]{text}[/][/]{badge["right"]}"
+        else:
+            # If conditions are not met, return an empty string
+            return ''
+
+class System():
     @staticmethod
     def getInternet():
         try:
@@ -559,37 +774,21 @@ class System(Icon):
     @staticmethod
     def getCPU():
         """
-        Retrieves the CPU frequency of the system.
+        Retrieves the CPU info of the system.
 
         Returns:
-            str: A string representing the CPU frequency with its appropriate unit (GHz or MHz).
+            str: A string representing the CPU info with its appropriate unit (GHz or MHz).
         """
-        def detect_unit(frequency):
-            """
-            Detects the appropriate unit (GHz or MHz) for the given frequency.
-
-            Args:
-                frequency (int): The CPU frequency in MHz.
-
-            Returns:
-                str: The appropriate unit (GHz or MHz).
-            """
-            return "GHz" if frequency >= 1000 else "MHz"
-        
-        if system == "android":
-            # For Android systems, read CPU frequency from a specific path
-            cpu_path = "/sys/devices/system/cpu/cpu0/cpufreq/cpuinfo_max_freq"
-            freqs = int(open(cpu_path).read())/1000 
+        freqs, unit = cpu_info["hz_advertised_friendly"].split()
+        freqs = round(float(freqs), 1)
+        if args.text == "detailed":
+            if system == "android":
+                cpu = f"{cpu_info["hardware_raw"]} {freqs} {unit}"
+            else:
+                cpu = f"{cpu_info["brand_raw"]}"
         else:
-            # For other systems, use psutil to retrieve CPU frequency
-            freq_current = psutil.cpu_freq().current
-            freq_max = psutil.cpu_freq().max
-            # Use max frequency if available, else current frequency
-            freqs = freq_current if freq_max == 0 else freq_max
-
-        unit = detect_unit(freqs)  # Determine appropriate frequency unit
-        freqs_ = str(round(freqs / 1000, 1))
-        cpu = f"{freqs_} {unit}"  # Concatenate frequency and unit to form CPU information string
+            cpu = f"{freqs} {unit}"  # Concatenate frequency and unit to form CPU information string
+        
         return cpu
 
     @staticmethod
@@ -609,14 +808,12 @@ class System(Icon):
 
                 # Extract relevant columns from the memory info
                 mem = getCols(mem_info)
-                total_ram = int(findStr(mem, "MemTotal")[1])
-                avail_ram = int(findStr(mem, "MemAvailable")[1])
+                total_ram_bits = int(findStr(mem, "MemTotal")[1]) * 1024
+                avail_ram_bits = int(findStr(mem, "MemAvailable")[1]) * 1024
+                total_ram, unitT = convert_size(total_ram_bits)
 
                 # Calculate used RAM by subtracting available RAM from total RAM
-                used_ram = total_ram - avail_ram
-
-                # Format RAM usage as "used/total" in GB (Gigabytes)
-                ram = f"{used_ram / 1024**2:.1f}/{total_ram / 1024**2:.0f}G"
+                used_ram, unitU = convert_size(total_ram_bits - avail_ram_bits)
             except Exception:
                 # Return None if an exception occurs
                 return None
@@ -628,12 +825,16 @@ class System(Icon):
                 # Convert total and used RAM sizes to human-readable format
                 total_ram, unitT = convert_size(svmem.total)
                 used_ram, unitU = convert_size(svmem.used)
-
-                # Format RAM usage as "used/total" with appropriate units
-                ram = f"{used_ram:.1f}{unitU}/{total_ram:.0f}{unitT}"
             except Exception:
                 # Return None if an exception occurs
                 return None
+
+        if args.text == "detailed":
+            # Format RAM usage as "used/total" and percent with appropriate units
+            ram = f"{used_ram:.1f}{unitU}B/{total_ram:.0f}{unitT}B ({int((used_ram/total_ram) * 100)}%)"
+        else:
+            # Format RAM usage as "used/total" with appropriate units
+            ram = f"{used_ram:.1f}{unitU}/{total_ram:.0f}{unitT}"
         return ram
 
     @staticmethod
@@ -703,7 +904,14 @@ class System(Icon):
                 # else Discharging, sets index to ranges from 0 to 9
                 index = (percent // 10) -1
 
-            return index, f"{percent}%"  # Return battery level index and percentage
+            if args.text == "detailed":
+                if index == -1:
+                    status = f"{percent}% (charging)"
+                else:
+                    status = f"{percent}% (unplugged)"
+            else:
+                status = f"{percent}%"
+            return index, status  # Return battery status and icon index and percentage
         except Exception:
             # Return None if an exception occurs while retrieving battery information
             return None, None
@@ -726,21 +934,32 @@ class System(Icon):
                 # Extract relevant columns from the disk usage information
                 disk = getCols(df_info)
 
+                avail_bits = int(findStr(disk, "emulated")[3])*1024
+                used_bits = int(findStr(disk, "emulated")[2])*1024
+
                 # Convert available space to human-readable format
-                avail_space, size_unit = convert_size(int(findStr(disk, "emulated")[3])*1024)
+                avail_space = convert_size(avail_bits)
+                total_space = convert_size(used_bits+avail_bits)
             else:
                 # Get disk usage information for the root directory
                 disk_usage = psutil.disk_usage('/')
+                total_space = convert_size(disk_usage.total)
 
                 # Convert available space to human-readable format
-                avail_space, size_unit = convert_size(disk_usage.free)
+                avail_space = convert_size(disk_usage.free)
 
             if system == "windows":
                 # For Windows systems, print which volume label is in use
-                volume_label = os.getcwd().split("\\")[0].removesuffix(":")  # Extract volume label from current directory
-                return f"{avail_space:.1f}{size_unit} 󰽜 {volume_label}"  # Return available disk space with volume label
+                volume_label = os.getcwd().split("\\")[0]  # Extract volume label from current directory
+                if args.text == "detailed":
+                    return f"{avail_space[0]:.1f} {avail_space[-1]}B free of {total_space[0]:.0f} {total_space[-1]}B ({volume_label})"  # Return available disk space with volume label
+                else:
+                    return f"{avail_space[0]:.1f}{avail_space[-1]} ({volume_label})"  # Return available disk space with volume label
             else:
-                return f"{avail_space:.1f}{size_unit}"  # Return available disk space
+                if args.text == "detailed":
+                    return f"{avail_space[0]:.1f} {avail_space[-1]}B free of {total_space[0]:.0f} {total_space[-1]}B"  # Return available disk space with volume label
+                else:
+                    return f"{avail_space[0]:.1f}{avail_space[-1]}"  # Return available disk space
         except Exception:
             # Return None if an exception occurs while retrieving disk information
             return None
@@ -776,17 +995,26 @@ class System(Icon):
         uptime_days = uptime_seconds // (24 * 3600)
         uptime_hours = (uptime_seconds % (24 * 3600)) // 3600
         uptime_minutes = (uptime_seconds % 3600) // 60
+        uptime_seconds = uptime_seconds % 60  # Remaining seconds
 
         # Format the output
         days_str = "day" if uptime_days == 1 else "days"
-        hours_str = "hr" if uptime_hours < 1 else "hrs"
+        if args.text == "detailed":
+            hours_str = "hour" if uptime_hours < 1 else "hours"
+            mins_str = "min" if uptime_minutes < 2 else "mins"
+        else:
+            hours_str = "hr" if uptime_hours < 1 else "hrs"
 
         if uptime_days == 0:
             uptime_days = ""
         else:
             uptime_days = f"{int(uptime_days)} {days_str} "
-    
-        uptime = f"{uptime_days}{int(uptime_hours)}.{int(uptime_minutes)//10} {hours_str}"
+
+        if args.text == "detailed":
+            uptime = f"{uptime_days}{int(uptime_hours)} {hours_str} {int(uptime_minutes)} {mins_str}"
+        else:
+            uptime = f"{uptime_days}{int(uptime_hours)}.{int(uptime_minutes)//10} {hours_str}"
+
         return uptime
 
     @staticmethod
@@ -803,10 +1031,10 @@ class System(Icon):
         if args.location:
             # Replace spaces in the location string with URL encoding
             area = args.location.replace(" ", "%20")
-            weather_api = "704d823ce51a9ee3083dcaaaee8d8404"
+            open_weather_api = args.weather_api
             try:
                 # Send a GET request to OpenWeatherMap API
-                req = requests.get(f"https://api.openweathermap.org/data/2.5/weather?q={area}&appid={weather_api}&units=metric", timeout=3)
+                req = requests.get(f"https://api.openweathermap.org/data/2.5/weather?q={area}&appid={open_weather_api}&units=metric", timeout=3)
             except Exception:
                 # If an exception occurs during the request, return None values
                 return None, None
@@ -820,52 +1048,83 @@ class System(Icon):
                 weather_type = jq["weather"][0]["main"]
                 weather_temp = str(int(jq["main"]["temp"])) +" °C"
 
+                if args.text == "detailed":
+                    weather_temp = f"{weather_temp} {area.lower()}"
                 # Return weather type and temperature
                 return weather_type, weather_temp
             else:
                 # If the request was not successful, print the error message and exit
-                console.print(jq, justify="center")
+                print_align(req.text, align=align)
                 sys.exit(1)
         # If no location argument is provided, return None values
         return None, None
 
+icon = Icon()
+badge = icon.badge
 
 def main():
+    global arch, cpu_info
+
     try:
         if not any(var for var in [args.widgets, args.stdout, args.json]):
             if "logo" in args.show:
-                console.print(logo, justify="center")
+                logo_ = "\n" * args.margin + logo
+                print_align(logo_, end="\n")
+
+                if args.direction == "row":
+                    for _ in range(logo_len):
+                        sys.stdout.write("\033[F")  # Move cursor up one line
 
         if "logo" == args.show:
+            for _ in range(logo_len):
+                print()
             sys.exit(0)
-
-        icon = Icon()
-        badge = System().badge
-
-        def printINFO(color, icon, text):
-            # string = f"{ansi(black, 38)}{icon.circle[0]}{ansi(black, 48)}{ansi("9ACB73", 38)}{icon.signal}{ansi(0, 38)}{ansi(black, 48)} getting info, wait{ansi(0, 38)}{ansi(black, 38)}{icon.circle[1]}"
-
-            string = badge(color, icon, text)
-
-            # hide extra coloring character from string
-            re_string = re.sub(r'\[[^\]]*\]', '[]', string).replace("[]", "")
-
-            # center text within the console width
-            padding = " " * int(((console.width - len(re_string)) // 2)+2)
-            console.print(padding + string, end="\r")
         
         if not any(var for var in [args.widgets, args.stdout, args.json]):
-            printINFO(green, "signal", "getting information, wait")
+            # Construct the badge string
+            if args.direction == "row":
+                sys.stdout.write(f"\033[{alongside_width}C")  # Move right the cursor
+            
+            loading_info = badge(color=green, icon=icon.signal, text="getting info, wait")
+            
+            if args.direction == "row":
+                loading_info_len = print_align(loading_info, align="left", end="\r")
+            
+            else:
+                loading_info_len = print_align(loading_info, end="\r")
 
         if system == "android":
-            command = "am startservice -n com.termux.api/.KeepAliveService"
-            output = subprocess.run(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, check=True).stderr.strip()
-            if output:
-                console.print(badge(red, f"status[1]", "Termux:API not found, install to continue."), justify="center")
-                console.print("https://f-droid.org/en/packages/com.termux.api", justify="center")
-                sys.exit(1)
+            istermux = subprocess.run("pwd", shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, check=True).stdout.strip()
+            if not args.bypass_system_api and "com.termux" in istermux:
+                command = "am startservice -n com.termux.api/.KeepAliveService"
+                try:
+                    output = subprocess.run(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, check=True).stderr.strip()
+                except Exception:
+                    output = None
 
-        hostname = platform.node().lower()  # Get the lowercase hostname of the system
+                if output:
+                    console.print(badge(color=red, icon=icon.status[1], text="Termux:API not found, install to continue."))
+                    console.print("https://f-droid.org/en/packages/com.termux.api")
+                    sys.exit(1)
+
+                command = "dpkg -l"
+
+                try:
+                    package = subprocess.run(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, check=True).stdout.strip().split("\n")
+                    if any(pkg for pkg in package if "termux-api" in pkg):
+                        package = True
+                    else:
+                        package = False
+                except Exception:
+                    package = None
+
+                if not package:
+                    console.print(badge(color=red, icon=icon.status[1], text="termux-api package not found, install to continue."))
+                    sys.exit(1)
+
+        # Get detailed CPU info
+        cpu_info = cpuinfo.get_cpu_info()
+
         try:
             # Try to get the lowercase username of the current user
             username = os.getlogin().lower()
@@ -873,8 +1132,11 @@ def main():
             # If unable to get the login name, fallback to the lowercase username from environment variables
             username = os.environ.get('USER')
 
-        # Get the lowercase machine architecture of the system
-        arch = platform.machine().lower()
+        if is_superuser():
+            username = "admin"
+
+        if args.text == "detailed":
+            arch = f"{arch} {cpu_info["bits"]} bits ({cpu_info["count"]})"
 
         # package = System.getPackage()
         # cpu = System.getCPU()
@@ -916,17 +1178,11 @@ def main():
 
         # setting network icon to the Class which depends on network status using ternary operator
         icon.net = icon.online if reqStatus else icon.offline
-
-        # __time = __time__.split(":")
-        # time1 = __time[0]
-        # time2 = list(__time[1])
-        # time2.insert(0, "0")
-        # print(time1, time2)
         
         widgets_set = {
             "username": {
                 "text": username,
-                "color": green,
+                "color": red if is_superuser() else green,
                 "icon": icon.user
             },
 
@@ -937,7 +1193,7 @@ def main():
             },
 
             "platform": {
-                "text": system,
+                "text": system + " " + release if args.text == "detailed" else system,
                 "color": cyan,
                 "icon": icon.os
             },
@@ -999,7 +1255,7 @@ def main():
             "battery": {
                 "text": info.battery[1],
                 "color": sky,
-                "icon": lget(icon.battery, info.battery[0], None)
+                "icon": icon.battery.get(str(info.battery[0]), None)
             },
 
             "uptime": {
@@ -1051,7 +1307,7 @@ def main():
             if not "widgets" in str(err):
                 # Check if the error is not related to "widgets" property
                 # If so, print an error message
-                console.print(f"Expecting property name enclosed in double quotes at: {CONFIG_PATH}", justify="center")
+                console.print(f"Expecting property name enclosed in double quotes at: {CONFIG_PATH}")
                 sys.exit(0)
 
         if widget_config:
@@ -1088,18 +1344,18 @@ def main():
                         # Get text, color, and icon from the widget configuration or use existing values if not provided
                         text = widget.get("text", widgets_set[name]["text"])
                         color = widget.get("color", widgets_set[name]["color"])
-                        icon_ = widget.get("icon", widgets_set[name]["icon"])
+                        addon_icon = widget.get("icon", widgets_set[name]["icon"])
 
                         # Update the widget in the widgets_set if text, color, and icon are provided
-                        if text and color and icon_:
+                        if text and color and addon_icon:
                             widgets_set[name] = {
                                 "text": text,
                                 "color": color,
-                                "icon": icon_
+                                "icon": addon_icon
                             }
             except Exception:
                 # Handle any unexpected errors during iteration
-                console.print(f"widgets not configured properly at: {CONFIG_PATH}", justify="center")
+                console.print(f"widgets not configured properly at: {CONFIG_PATH}")
                 sys.exit(0)
 
         # Initialize an empty dictionary to store valid widgets
@@ -1110,12 +1366,13 @@ def main():
                 # Attempt to extract the necessary properties from the widget
                 text = widget["text"]
                 color = widget["color"]
-                icon_ = widget["icon"]
+                addon_icon = widget["icon"]
 
                 # Check if all required properties are present and not empty
                 if text and icon and color:
                     # Store the provided values in the widgets dictionary, associated with the specific widget name.
-                    widgets[name] = f"[{black}]{icon.circle[0]}[on {black}][{color}]{icon_}[/] [b white]{text}[/][/][{black}]{icon.circle[1]}"
+                    widgets[name] = badge(color=color, icon=addon_icon, text=text)
+                    
             except Exception:
                 # If any error occurs during extraction, continue to the next widget
                 pass
@@ -1135,7 +1392,7 @@ def main():
                     exec_  = widget.get("exec", None)
                     script = widget.get("script", None)
                     color  = widget.get("color", "na")
-                    icon_  = widget.get("icon", "na")
+                    addon_icon  = widget.get("icon", "na")
                     index  = widget.get("index", len(widgets))
 
                     if exec_:
@@ -1153,11 +1410,11 @@ def main():
                                     # Check if the script content is empty
                                     if not script.strip():
                                         # Print an error message and exit if the script file is empty
-                                        console.print(f"script file is empty for {name} widget addon at: {CONFIG_PATH}", justify="center")
+                                        console.print(f"script file is empty for {name} widget addon at: {CONFIG_PATH}")
                                         sys.exit(1)
                             else:
                                 # Print an error message and exit if the script path is not found
-                                console.print(f"script path not found for {name} widget addon at: {CONFIG_PATH}", justify="center")
+                                console.print(f"script path not found for {name} widget addon at: {CONFIG_PATH}")
                                 sys.exit(1)
 
                         try:
@@ -1176,38 +1433,38 @@ def main():
                             # Restore sys.stdout to its original value
                             sys.stdout = stdout_backup
                             # Print an error message indicating an invalid script
-                            console.print(f"invalid script for {name} widget addon at: {CONFIG_PATH}", justify="center")
+                            console.print(f"invalid script for {name} widget addon at: {CONFIG_PATH}")
                             # Exit the program with an error status code
                             sys.exit(1)
 
                     # Check if text is provided and icon is "na"
-                    if text and icon_ == "na":
+                    if text and addon_icon == "na":
                         # Construct the widget value with default icon
-                        value = f"[{black}]{icon.circle[0]}[on {black}][b white][{color}]{text}[/][/][/][{black}]{icon.circle[1]}"
+                        value = badge(color=color, text=text)
                         # Insert the widget into the widgets dictionary at the specified index
                         widgets = insert_dict(widgets, index, name, value)
 
                     # Check if text, color, and icon are provided
-                    elif text and not color == "na" and not icon_ == "na":
+                    elif text and not color == "na" and not addon_icon == "na":
                         # Construct the widget value with provided icon
-                        value = f"[{black}]{icon.circle[0]}[on {black}][{color}]{icon_}[/] [b white]{text}[/][/][{black}]{icon.circle[1]}"
+                        value = badge(color=color, icon=addon_icon, text=text)
                         # Insert the widget into the widgets dictionary at the specified index
                         widgets = insert_dict(widgets, index, name, value)
                     else:
                         # Print an error message if the addon widget is not properly configured
-                        console.print(f"'{name}' addon widget not configured properly at: {CONFIG_PATH}", justify="center")
+                        console.print(f"'{name}' addon widget not configured properly at: {CONFIG_PATH}")
                         # Exit the program with an error status code
                         sys.exit(1)
 
                     # Insert the widget into the widgets_set dictionary with its properties
-                    widgets_set = insert_dict(widgets_set, len(widgets_set), name, {"text": text, "color": color, "icon": icon_})
+                    widgets_set = insert_dict(widgets_set, len(widgets_set), name, {"text": text, "color": color, "icon": addon_icon})
 
             except Exception:
                 # Handle any exceptions that occur during addon widget configuration
-                console.print(f"addons not configured properly at: {CONFIG_PATH}", justify="center")
+                console.print(f"addons not configured properly at: {CONFIG_PATH}")
                 # Exit the program with an error status code
                 sys.exit(1)
-
+                
         if args.widgets:
             # Convert the widgets_set dictionary to JSON format with indentation for readability
             output = json.dumps(widgets_set, indent=2)
@@ -1224,22 +1481,49 @@ def main():
             # Exit the program with a success status code
             sys.exit(0)
 
+        if args.color_bars:
+            color_bars = "".join([f"[{color}]━━[/]" for color in color_codes])
+            widgets["color_bars"] = badge(text=color_bars)
+
         # Extract the values (widget information) from the widgets dictionary and convert them into a list
         widget_values = list(widgets.values())
         # Divide the widget values into rows based on the specified number of columns
         widget_rows = [widget_values[i:i+args.column] for i in range(0, len(widget_values), args.column)]
 
-        # console.print(max(widget_rows))
+        if args.direction == "column":
+            print(loading_info_len, end="\r")
+            if align == "center":
+                sys.stdout.write("\033[F")  # Move cursor up one line
 
         # Iterate over each row of widgets
-        for widget in widget_rows:
-            # Print each widget in the row, with two spaces padding on the left, centered alignment, and newline after each row
-            console.print(" "*2, *widget, justify="center", end="\n\n")
-        # Print additional whitespace as specified by the user (args.whitespace - 1) times
-        print("\n"*(args.whitespace-1))
+        for index, (widget, line) in enumerate(zip_longest(widget_rows, logo.splitlines(), fillvalue="")):
+            sleep(0.005)
+            if widget:
+                row_gap = " " * args.row_gap
+                widget = row_gap.join(widget)
+
+                if args.direction == "row":
+                    sys.stdout.write(f"\033[{alongside_width}C")  # Move right (40 columns) and print info
+                    if index == 0:
+                        spaces = " " * len(cleaned_string(loading_info))
+                    else:
+                        spaces = ""
+                    print_align(widget + spaces, align="left")
+
+                else:
+                    # Print each widget in the row, with provided spaces padding on the left, following alignment, and provided newline after each row
+                    print_align(widget, align=align)
+                print(end="\n" * args.column_gap)
+
+            else:
+                if args.direction == "row":
+                    sys.stdout.write(f"\033[{alongside_width}C\n")
+
+        # Print additional whitespace as specified by the user (args.margin - 1) times
+        print("\n"*(args.margin-1))
 
     except (EOFError, KeyboardInterrupt):
-        console.print(badge(red, f"status[1]", "Program interrupted."), justify="center", end="\n\n")
+        print_align(badge(color=red, icon=icon.status[1], text="Program interrupted."), align=align, end="\n\n")
 
 if __name__ == "__main__":
     main()

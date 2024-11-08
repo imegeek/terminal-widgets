@@ -1,6 +1,6 @@
 <div align="center">
 <kbd>
-  <img src="https://github.com/imegeek/terminal-widgets/assets/63346676/30780c81-38f5-4083-98b6-caef644a2563" alt="Preview" />
+  <img src="https://github.com/user-attachments/assets/d0094956-31b6-4969-b64a-ae51fd4e36bc" alt="Preview" />
 </kbd>
 </div><br>
 
@@ -17,30 +17,37 @@ Terminal Widgets is a versatile CLI program designed to enhance your terminal ex
 ## Features:
 
 - **System Information Widgets:**
-   - Displays system-related information such as battery status, weather, shell, storage details, hostname, date, RAM usage and many more.
 
+  - Displays system-related information such as battery status, weather, shell, storage details, hostname, date, RAM usage and many more.
 - **Customizable build-in Widgets:**
-   - Users can customize widgets according to their preferences, including text, color, icon, index and state.
 
+  - Users can customize widgets according to their preferences, including text, color, icon, index and state.
 - **Addons Widgets:**
-   - Supports addon widgets with customizable text, color, script execution, icon display, and position settings.
 
+  - Supports addon widgets with customizable text, color, script execution, icon display, and position settings.
 - **Dynamic Content Configuration:**
-   - Offers a dynamic way to set content inside text, script, or program files without explicitly defining color or icon keys.
 
+  - Offers a dynamic way to set content inside text, script, or program files without explicitly defining color or icon keys.
 - **Configuration Options:**
-   - Provides a configuration file (`~/.twidgets.json`) for users to modify settings like custom color codes, addon widgets, and built-in widget configurations.
 
+  - Provides a configuration file (`~/.twidgets.json`) for users to modify settings like custom color codes, addon widgets, and built-in widget configurations.
+- **Orientation Support:**
+
+  - Enables users to customize widget layout orientation, allowing display in either horizontal (row) or vertical (column) configurations for improved flexibility across different terminal setups.
+- **Custom Logo Support:**
+
+  - Provides the option to add a personalized logo through the configuration file (`~/.twidgets.json`).
 - **Easy Installation:**
-   - Available for installation via pip or as a local install for convenient setup.
 
+  - Available for installation via pip or as a local install for convenient setup.
 - **Color Formatting Support:**
-   - Supports color formatting using both named colors (e.g., `[red]`) and hexadecimal color codes.
 
+  - Supports color formatting using both named colors (e.g., `[red]`) and hexadecimal color codes.
 - **Icon Integration:**
-    - Allows integration of icons into text content using Unicode characters, enhancing visual representation within widgets.
 
+  - Allows integration of icons into text content using Unicode characters, enhancing visual representation within widgets.
 - **Supports Command Line Arguments**
+
   - Terminal-Widgets offers support for command line arguments, providing users with flexibility in configuring and managing the program directly from the terminal.
   - Refer to the [Argument Options](#argument) for more detailed information.
 
@@ -71,6 +78,7 @@ Terminal Widgets is a versatile CLI program designed to enhance your terminal ex
 </kbd>
 
 ## Supported platforms
+
 - Linux
 - Windows
 - Darwin (macOS)
@@ -80,6 +88,7 @@ Terminal Widgets is a versatile CLI program designed to enhance your terminal ex
 ## Getting Started
 
 To start using Terminal Widgets, follow these steps:
+
 1. Install the program via pip or perform a local install.
 2. Ensure you have Nerd Font installed for optimal display.
 3. Customize your widgets and addons using the configuration file (`~/.twidgets.json`).
@@ -90,14 +99,11 @@ To start using Terminal Widgets, follow these steps:
 Before using Terminal Widgets, please ensure that you have the following prerequisites installed:
 
 1. **Python 3.x**: Terminal Widgets is written in Python and requires Python 3.x to be installed on your system.
-
 2. **Nerd Font**: Terminal Widgets requires Nerd Font for display glyphs. If not installed, download one from [here](https://www.nerdfonts.com/).
-
 3. **For Android users using Termux**:
+
    - **Termux**: Terminal Widgets can be used on Android devices via Termux. Ensure that you have [Termux](https://f-droid.org/en/packages/com.termux/) installed on your Android device from the Google Play Store or F-Droid.
-
    - **Termux-API**: Terminal Widgets requires the Termux-API app for certain functionalities. Install the [Termux-API](https://f-droid.org/en/packages/com.termux.api/) app from the Google Play Store or F-Droid.
-
    - **termux-api**: Terminal Widgets requires the termux-api package for certain functionalities. Install termux-api by running the following command in your Termux terminal:
 
      ```
@@ -115,7 +121,9 @@ To install Terminal Widgets via pip, simply run the following command:
 ```
 pip install terminal-widgets
 ```
+
 or
+
 ```
 pip3 install terminal-widgets
 ```
@@ -127,15 +135,13 @@ This will download and install the latest version of Terminal Widgets from the P
 To install Terminal Widgets locally, follow these steps:
 
 1. Clone this repository to your local machine.
-`git clone https://github.com/imegeek/terminal-widgets`
-
+   `git clone https://github.com/imegeek/terminal-widgets`
 2. Navigate to the cloned directory.
-`cd terminal-widgets`
-
+   `cd terminal-widgets`
 3. Install the package using pip:
-`pip install .`
-or
-`pip3 install .`
+   `pip install .`
+   or
+   `pip3 install .`
 
 This will install Terminal Widgets along with its dependencies from the local source files.
 
@@ -143,34 +149,56 @@ This will install Terminal Widgets along with its dependencies from the local so
 
 Simply run the **`twidgets`** in your terminal to get an overview of your system status.
 try these command if not working:
+
 ```shell
 python -m twidgets
 ```
+
 or
+
 ```shell
 python3 -m twidgets
 ```
 
-<a name="argument"></a>
+`<a name="argument"></a>`
+
 ## Argument Options:
 
 Terminal-Widgets supports the following command line options for customization and control:
 
-- **-h, --help**: Show this help message and exit.
-- **--configs**: Show the configuration file.
-- **--widgets**: Show built-in widgets and their values.
-- **--stdout**: Turn off all colors and disable any ASCII, printing only texts.
-- **--json**: Show widgets output as a JSON object.
-- **--show ['logo', 'widgets']**: Specify what to show: 'logo' or 'widgets'.
-- **--color ['normal', 'vivid', 'random', 'custom']**: Choose a color mode for terminal widgets.
-- **--weather location**: Set the weather location to show in widgets.
-- **-c file, --config file**: Specify the JSON configuration file to load.
-- **--column length**: Specify the number of columns that will be displayed for each row.
-- **--whitespace length**: Specify the number of whitespaces that will be displayed before and after execution.
+**-h, --help**               Show this help message and exit.
+**--configs**                Display the configuration file.
+**--widgets**                List built-in widgets and their values.
+**--stdout**                 Disable colors and ASCII graphics, displaying only plain text.
+**--json**                   Output widget data as a JSON object.
+**--no-badge**               Display widgets without badge styling.
+**--color-bars**             Enable color bars in terminal widgets.
+**--text {detailed, compact}**
+                         Set text mode for terminal widgets:
+                         - 'detailed' includes extended information
+                         - 'compact' shows concise info (default: compact)
+**--color [normal, vivid, random, custom]**
+                         Select color mode for terminal widgets (default: normal).
+**--logo [pacman, linux, windows, macos, android]**
+                         Choose a logo to display before widgets
+                         (default: auto, based on system).
+**--show [logo, widgets]**   Specify what to display: 'logo' or 'widgets'.
+**--align [left, center]**   Set alignment mode for terminal widgets (default: center).
+**--direction [row, column]**
+                         Choose layout direction for widgets (default: row).
+**--weather location**       Set the location for the weather widget.
+**--weather-api API_KEY**    Provide OpenWeather API key for weather data.
+**--bypass-system-api**      Bypass system API requirement checks.
+**-c, --config file**        Specify a JSON configuration file to load.
+**--column length**          Set the number of widgets per row.
+**--column-gap length**      Set gap between widgets in each column.
+**--row-gap length**         Set gap between widgets in each row.
+**--margin length**          Set whitespace lines before and after execution.
 
 These options allow users to customize the behavior and appearance of Terminal-Widgets according to their preferences.
 
-<a name="configuration"></a>
+`<a name="configuration"></a>`
+
 ## Configuration
 
 Terminal Widgets supports configuration options, allowing users to customize their widgets or add new ones.
@@ -178,44 +206,52 @@ Terminal Widgets supports configuration options, allowing users to customize the
 To configure Terminal Widgets:
 
 1. Open the configuration file located at `~/.twidgets.json`.
-
 2. Modify the following key-value pairs according to your preferences:
-  - **colors**: Define custom color codes for widgets and addons. This option requires all color names (`red`, `cyan`, etc.) to be specified, to show custom colors pass `--color custom` argument to the program.
 
-   - **addons**: Customize addon widgets. Use properties like `text`, `color`, `script`, `exec`, `icon`, and `index`.
-     - **text**: The text content to display for the addon.
-     - **color**: The color code for the addon text or icon.
-     - **script**: The Python script file or code to execute for dynamic text content.
-     - **exec**: The terminal command to execute for dynamic text content.
-     - **icon**: The UTF-8 code of the icon or glyph to display for the addon.
-     - **index**: The position of the addon in the widget layout.
-   - **widgets**: Configure built-in widgets like `username`, `hostname`, `platform`, `shell`, `package`, etc. Use properties like `text`, `color`, `icon`, `index`, and `state`.
-     - **text**: The text content to display for the widget.
-     - **color**: The color code for the widget icon.
-     - **icon**: The UTF-8 code of the icon or glyph to display for the widget.
-     - **index**: The position of the widget in the widget layout.
-     - **state**: Use "disabled" value to hide specific widget.
+- **colors**: Define custom color codes for widgets and addons. This option requires all color names (`red`, `cyan`, etc.) to be specified, to show custom colors pass `--color custom` argument to the program.
+
+- **logo**: Customize the logo displayed before the widgets. You can define an ASCII art logo by entering it as an array of strings under the `"logo"` key. This logo will appear in the terminal before other widgets, providing a personalized visual touch.
+
+- **weather_api**: Provide your OpenWeatherMap API key for weather data.
+  - API_KEY: Provide your OpenWeatherMap API key here (e.g., "weather_api": "xxxxxxxxxxxxxxxx").
+
+<br>
+
+- **addons**: Customize addon widgets. Use properties like `text`, `color`, `script`, `exec`, `icon`, and `index`.
+  - **text**: The text content to display for the addon.
+  - **color**: The color code for the addon text or icon.
+  - **script**: The Python script file or code to execute for dynamic text content.
+  - **exec**: The terminal command to execute for dynamic text content.
+  - **icon**: The UTF-8 code of the icon or glyph to display for the addon.
+  - **index**: The position of the addon in the widget layout.
+- **widgets**: Configure built-in widgets like `username`, `hostname`, `platform`, `shell`, `package`, etc. Use properties like `text`, `color`, `icon`, `index`, and `state`.
+  - **text**: The text content to display for the widget.
+  - **color**: The color code for the widget icon.
+  - **icon**: The UTF-8 code of the icon or glyph to display for the widget.
+  - **index**: The position of the widget in the widget layout.
+  - **state**: Use "disabled" value to hide specific widget.
 
 3. Dynamic Method for Defining **widget-addon** without Specifying 'color' or 'icon'.
-  - **Add Text**:
-    - Simply input the desired text.
 
-  - **Add Color**:
-    - "[color_name or hex_code]" marks the beginning of the color for the content.
-    - "[/]" signifies the end of color formatting.
+- **Add Text**:
 
-  - **Add Icon**:
-    - Incorporate icons into text content using Unicode characters. For instance, utilize "\uf255" to depict a custom Unicode character as an icon within the text.
+  - Simply input the desired text.
+- **Add Color**:
 
-  - Refer to Example 11 for further clarification.
+  - "[color_name or hex_code]" marks the beginning of the color for the content.
+  - "[/]" signifies the end of color formatting.
+- **Add Icon**:
 
+  - Incorporate icons into text content using Unicode characters. For instance, utilize "\uf255" to depict a custom Unicode character as an icon within the text.
+- Refer to Example 11 for further clarification.
 
 4. Save the changes and restart Terminal Widgets to apply the new configuration.
 
-
 ## Configuration Examples
+
 - **Example 1:**
   - This example defines custom **colors** code for terminal-widgets.
+
 ```json
 {
     "colors": {
@@ -230,6 +266,32 @@ To configure Terminal Widgets:
 ```
 
 - **Example 2:**
+  - This example customize the logo in the Terminal Widgets.
+
+```json
+{
+  "logo": [
+    "        ,.=:!!t3Z3z.,                 ",
+    "       :tt:::tt333EE3                 ",
+    "       Et:::ztt33EEEL @Ee.,      ..,  ",
+    "      ;tt:::tt333EE7 ;EEEEEEttttt33#  ",
+    "     :Et:::zt333EEQ. $EEEEEttttt33QL  ",
+    "     it::::tt333EEF @EEEEEEttttt33F   ",
+    "    ;3=*^```\"*4EEV :EEEEEEttttt33@.   ",
+    "    ,.=::::!t=., ` @EEEEEEtttz33QF    ",
+    "   ;::::::::zt33)   \"4EEEtttji3P*     ",
+    "  :t::::::::tt33.:Z3z..  `` ,..g.     ",
+    "  i::::::::zt33F AEEEtttt::::ztF      ",
+    " ;:::::::::t33V ;EEEttttt::::t3       ",
+    " E::::::::zt33L @EEEtttt::::z3F       ",
+    "{3=*^```\"*4E3) ;EEEtttt:::::tZ`       ",
+    "             ` :EEEEtttt::::z7        ",
+    "                 \"VEzjt:;;z>*`        "
+  ]
+}
+```
+
+- **Example 3:**
   - Configures the **build-in** widget `username` to change set custom color of icon.
 
 ```json
@@ -242,7 +304,7 @@ To configure Terminal Widgets:
 }
 ```
 
-- **Example 3:**
+- **Example 4:**
   - Configures the **build-in** widget `hostname` to display the text "macbook pro" at index 2 in the layout.
 
 ```json
@@ -256,7 +318,7 @@ To configure Terminal Widgets:
 }
 ```
 
-- **Example 4:**
+- **Example 5:**
   - Configures the **build-in** widget `platform` to display the text "macos" with the custom icon.
 
 ```json
@@ -270,7 +332,7 @@ To configure Terminal Widgets:
 }
 ```
 
-- **Example 5:**
+- **Example 6:**
   - Configures the **build-in** widget `shell` to display the text "zsh".
 
 ```json
@@ -283,7 +345,7 @@ To configure Terminal Widgets:
 }
 ```
 
-- **Example 6:**
+- **Example 7:**
   - Disables the **build-in** widget `storage`, preventing it from being displayed.
 
 ```json
@@ -296,7 +358,7 @@ To configure Terminal Widgets:
 }
 ```
 
-- **Example 7:**
+- **Example 8:**
   - Adds a welcome message **addon** with custom text, color, and position in the layout.
 
 ```json
@@ -311,7 +373,7 @@ To configure Terminal Widgets:
 }
 ```
 
-- **Example 8:**
+- **Example 9:**
   - Configures the `cputemp` **addon** to execute a Python script that prints a random temperature between 30°C and 60°C, with custom color and icon.
 
 ```json
@@ -326,7 +388,7 @@ To configure Terminal Widgets:
 }
 ```
 
-- **Example 9:**
+- **Example 10:**
   - Configures the `process` **addon** to execute a Python script located at "/path/to/the/file/script.py".
 
 ```json
@@ -339,7 +401,7 @@ To configure Terminal Widgets:
 }
 ```
 
-- **Example 10:**
+- **Example 11:**
   - Configures the `pwd` addon to execute the "pwd" command in the terminal, displaying the current directory path with custom color and icon.
 
 ```json
@@ -354,7 +416,7 @@ To configure Terminal Widgets:
 }
 ```
 
-- **Example 11:**
+- **Example 12:**
   - Configures the `hi` addon to display custom formatted text with colors.
     - **text**: Sets the text content to "[#ff0000]\uf255[/] [#eeff00]Hi, there[/]", where:
       - "[#ff0000]" specifies the start of red color for the text.
@@ -373,7 +435,7 @@ To configure Terminal Widgets:
 }
 ```
 
-- **Example 12:**
+- **Example 13:**
   - Configures the `color` addon to display custom color palette widget.
     - Uses a Python script to generate colored blocks representing each color in the palette.
     - Each color block is enclosed in color formatting tags, providing a visual representation of the color.
