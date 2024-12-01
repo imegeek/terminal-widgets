@@ -7,7 +7,7 @@ here = os.path.abspath(os.path.dirname(__file__))
 with codecs.open(os.path.join(here, "README.md"), encoding="utf-8") as fh:
     long_description = "\n" + fh.read()
 
-VERSION = '1.2'
+VERSION = '1.25'
 DESCRIPTION = 'A fully functional program for Terminal to show information about system, display, shell, package and many more.'
 
 # Setting up

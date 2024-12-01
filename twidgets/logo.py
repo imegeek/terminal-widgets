@@ -1,3 +1,10 @@
+from .path import CONFIG_PATH
+from rich.console import Console
+from json import load as jsload
+from sys import exit
+
+console = Console()
+
 logo_list = {
 "pacman" :
 r"""[b]
@@ -32,24 +39,24 @@ r"""[b]
 
 "windows" :
 [
-	"\33[48;5;32m                 \33[49m \33[48;5;32m                 \33[m",
-	"\33[48;5;32m                 \33[49m \33[48;5;32m                 \33[m",
-	"\33[48;5;32m                 \33[49m \33[48;5;32m                 \33[m",
-	"\33[48;5;32m                 \33[49m \33[48;5;32m                 \33[m",
-	"\33[48;5;32m                 \33[49m \33[48;5;32m                 \33[m",
-	"\33[48;5;32m                 \33[49m \33[48;5;32m                 \33[m",
-	"\33[48;5;32m                 \33[49m \33[48;5;32m                 \33[m",
-	"\33[48;5;32m                 \33[49m \33[48;5;32m                 \33[m",
-	"\33[49;38;5;32m▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀\33[49m \33[49;38;5;32m▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀\33[m",
-	"\33[48;5;32m                 \33[49m \33[48;5;32m                 \33[m",
-	"\33[48;5;32m                 \33[49m \33[48;5;32m                 \33[m",
-	"\33[48;5;32m                 \33[49m \33[48;5;32m                 \33[m",
-	"\33[48;5;32m                 \33[49m \33[48;5;32m                 \33[m",
-	"\33[48;5;32m                 \33[49m \33[48;5;32m                 \33[m",
-	"\33[48;5;32m                 \33[49m \33[48;5;32m                 \33[m",
-	"\33[48;5;32m                 \33[49m \33[48;5;32m                 \33[m",
-	"\33[48;5;32m                 \33[49m \33[48;5;32m                 \33[m",
-	"\33[49;38;5;32m▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀\33[49m \33[49;38;5;32m▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀\33[m"
+    "\33[48;5;32m                 \33[49m \33[48;5;32m                 \33[m",
+    "\33[48;5;32m                 \33[49m \33[48;5;32m                 \33[m",
+    "\33[48;5;32m                 \33[49m \33[48;5;32m                 \33[m",
+    "\33[48;5;32m                 \33[49m \33[48;5;32m                 \33[m",
+    "\33[48;5;32m                 \33[49m \33[48;5;32m                 \33[m",
+    "\33[48;5;32m                 \33[49m \33[48;5;32m                 \33[m",
+    "\33[48;5;32m                 \33[49m \33[48;5;32m                 \33[m",
+    "\33[48;5;32m                 \33[49m \33[48;5;32m                 \33[m",
+    "\33[49;38;5;32m▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀\33[49m \33[49;38;5;32m▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀\33[m",
+    "\33[48;5;32m                 \33[49m \33[48;5;32m                 \33[m",
+    "\33[48;5;32m                 \33[49m \33[48;5;32m                 \33[m",
+    "\33[48;5;32m                 \33[49m \33[48;5;32m                 \33[m",
+    "\33[48;5;32m                 \33[49m \33[48;5;32m                 \33[m",
+    "\33[48;5;32m                 \33[49m \33[48;5;32m                 \33[m",
+    "\33[48;5;32m                 \33[49m \33[48;5;32m                 \33[m",
+    "\33[48;5;32m                 \33[49m \33[48;5;32m                 \33[m",
+    "\33[48;5;32m                 \33[49m \33[48;5;32m                 \33[m",
+    "\33[49;38;5;32m▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀\33[49m \33[49;38;5;32m▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀\33[m"
 ],
 
 "macos" :
@@ -91,15 +98,45 @@ r"""[b]
 """
 }
 
+
+# Checks for logo object in json file
+try:
+    custom_logo_path = jsload(open(CONFIG_PATH, encoding="utf-8"))["logo"]
+except Exception:
+    custom_logo_path = None
+
+if custom_logo_path:
+    try:
+        custom_logo = {
+            # Combine all lines of the 'art' list into a single string and attach to the name object.
+            # Replace '\33' with '\033' to correctly format ANSI color codes for terminal output.
+            name: "\n".join([line.replace('\\33', '\033') for line in art])
+            # Iterate through the custom_logo_path dictionary to extract 'name' as key and 'art' as value.
+            for name, art in custom_logo_path.items()
+        }
+        
+        # Iterate through the custom_logo dictionary to extract (name, art) and add it to the logo_list
+        for name, art in custom_logo.items():
+            if not art:
+                raise ValueError("'logo' art cannot be empty")
+            logo_list[name] = art
+    except ValueError as err:
+        console.print(f"{err} at: {CONFIG_PATH}")
+        exit(1)
+    except Exception:
+        console.print(f"'logo' not configured properly at {CONFIG_PATH}")
+        exit(1)
+
 class Logo:
-	@staticmethod
-	def list():
-		return [name for name in logo_list]
+    @staticmethod
+    def list() -> list:
+        # Iterate through the logo_list to construct a list of only name key
+        return [name for name in logo_list]
 
-	@staticmethod
-	def select(logo_name):
-		logo = logo_list[logo_name]
-		if isinstance(logo, list):
-			logo = "\n".join(logo)
+    @staticmethod
+    def select(logo_name:str) -> str:
+        logo = logo_list[logo_name]
+        if isinstance(logo, list):
+            logo = "\n".join(logo)
 
-		return logo
+        return logo

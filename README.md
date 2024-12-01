@@ -77,6 +77,8 @@ Terminal Widgets is a versatile CLI program designed to enhance your terminal ex
 </p>
 </kbd>
 
+- Upload your custom edits for terminal-widgets [here](https://github.com/imegeek/terminal-widgets/issues/1)
+
 ## Supported platforms
 
 - Linux
@@ -160,44 +162,40 @@ or
 python3 -m twidgets
 ```
 
-`<a name="argument"></a>`
+<a name="argument"></a>
 
 ## Argument Options:
 
 Terminal-Widgets supports the following command line options for customization and control:
 
-**-h, --help**               Show this help message and exit.
-**--configs**                Display the configuration file.
-**--widgets**                List built-in widgets and their values.
-**--stdout**                 Disable colors and ASCII graphics, displaying only plain text.
-**--json**                   Output widget data as a JSON object.
-**--no-badge**               Display widgets without badge styling.
-**--color-bars**             Enable color bars in terminal widgets.
-**--text {detailed, compact}**
-                         Set text mode for terminal widgets:
-                         - 'detailed' includes extended information
-                         - 'compact' shows concise info (default: compact)
-**--color [normal, vivid, random, custom]**
-                         Select color mode for terminal widgets (default: normal).
-**--logo [pacman, linux, windows, macos, android]**
-                         Choose a logo to display before widgets
-                         (default: auto, based on system).
-**--show [logo, widgets]**   Specify what to display: 'logo' or 'widgets'.
-**--align [left, center]**   Set alignment mode for terminal widgets (default: center).
-**--direction [row, column]**
-                         Choose layout direction for widgets (default: row).
-**--weather location**       Set the location for the weather widget.
-**--weather-api API_KEY**    Provide OpenWeather API key for weather data.
-**--bypass-system-api**      Bypass system API requirement checks.
-**-c, --config file**        Specify a JSON configuration file to load.
-**--column length**          Set the number of widgets per row.
-**--column-gap length**      Set gap between widgets in each column.
-**--row-gap length**         Set gap between widgets in each row.
-**--margin length**          Set whitespace lines before and after execution.
+| Argument                          | Description                                                                                                   |
+|-----------------------------------|---------------------------------------------------------------------------------------------------------------|
+| `-h`, `--help`                    | Show this help message and exit.                                                                              |
+| `-v`, `--version`                 | Show the program version.                                                                                     |
+| `-u`, `--update`                  | Update the program to the latest version.                                                                     |
+| `-c`, `--config file`             | Specify the JSON configuration file to load.                                                                  |
+| `--json`                          | Shows widgets output as JSON object.                                                                          |
+| `--stdout`                        | Turn off all colors and disable any ASCII, printing only text.                                                |
+| `--configs`                       | Show the configuration file.                                                                                  |
+| `--no-badge`                      | Show widgets without badge style.                                                                             |
+| `--color-bars`                    | Show color bars in terminal widgets.                                                                          |
+| `--logo ['pacman', 'linux', 'windows', 'macos', 'android', 'generic']` | Choose a logo art to appear before widgets (default: system default logo).                                   |
+| `--show ['logo', 'widgets']`      | Specify what to show: `logo` or `widgets`.                                                                    |
+| `--text {'detailed': 'includes extended information', 'compact': 'short, less detailed'}` | Choose text mode for terminal widgets (default: compact).                           |
+| `--color ['normal', 'vivid', 'random', 'custom']` | Choose color mode for terminal widgets (default: normal).                                               |
+| `--align ['left', 'center']`      | Choose alignment mode for terminal widgets (default: center).                                                 |
+| `--direction ['row', 'column']`   | Choose direction mode for terminal widgets (default: row).                                                    |
+| `--weather location`              | Set weather location to show in widgets.                                                                      |
+| `--weather-api API_KEY`           | Set Open Weather API key.                                                                                     |
+| `--bypass-system-api`             | Turn off API checking for the required system.                                                                |
+| `--column length`                 | Specify the number of widgets to display per row.                                                             |
+| `--column-gap length`             | Specify the gap between widgets displayed in each column.                                                     |
+| `--row-gap length`                | Specify the gap between widgets displayed in each row.                                                        |
+| `--margin length`                 | Specify the number of whitespace lines displayed before and after execution.                                  |
 
 These options allow users to customize the behavior and appearance of Terminal-Widgets according to their preferences.
 
-`<a name="configuration"></a>`
+<a name="configuration"></a>
 
 ## Configuration
 
@@ -208,9 +206,11 @@ To configure Terminal Widgets:
 1. Open the configuration file located at `~/.twidgets.json`.
 2. Modify the following key-value pairs according to your preferences:
 
+- **args**: Specifies the command-line arguments for widget configuration. (e.g., `'--direction row --column 1 --column-gap 1 --no-badge --text detailed'`).
+
 - **colors**: Define custom color codes for widgets and addons. This option requires all color names (`red`, `cyan`, etc.) to be specified, to show custom colors pass `--color custom` argument to the program.
 
-- **logo**: Customize the logo displayed before the widgets. You can define an ASCII art logo by entering it as an array of strings under the `"logo"` key. This logo will appear in the terminal before other widgets, providing a personalized visual touch.
+- **logo**: Customize the logo displayed before the widgets by defining an ASCII art logo as an array of strings under the "logo" key. Provide a name (e.g., `"windows7", "macos"`) and the corresponding art. The logo will appear in the terminal before other widgets, access the added logo using `--logo <logo_name>`.
 
 - **weather_api**: Provide your OpenWeatherMap API key for weather data.
   - API_KEY: Provide your OpenWeatherMap API key here (e.g., "weather_api": "xxxxxxxxxxxxxxxx").
@@ -270,24 +270,27 @@ To configure Terminal Widgets:
 
 ```json
 {
-  "logo": [
-    "        ,.=:!!t3Z3z.,                 ",
-    "       :tt:::tt333EE3                 ",
-    "       Et:::ztt33EEEL @Ee.,      ..,  ",
-    "      ;tt:::tt333EE7 ;EEEEEEttttt33#  ",
-    "     :Et:::zt333EEQ. $EEEEEttttt33QL  ",
-    "     it::::tt333EEF @EEEEEEttttt33F   ",
-    "    ;3=*^```\"*4EEV :EEEEEEttttt33@.   ",
-    "    ,.=::::!t=., ` @EEEEEEtttz33QF    ",
-    "   ;::::::::zt33)   \"4EEEtttji3P*     ",
-    "  :t::::::::tt33.:Z3z..  `` ,..g.     ",
-    "  i::::::::zt33F AEEEtttt::::ztF      ",
-    " ;:::::::::t33V ;EEEttttt::::t3       ",
-    " E::::::::zt33L @EEEtttt::::z3F       ",
-    "{3=*^```\"*4E3) ;EEEtttt:::::tZ`       ",
-    "             ` :EEEEtttt::::z7        ",
-    "                 \"VEzjt:;;z>*`        "
-  ]
+    "logo": {
+        "windows7": [
+            "        ,.=:!!t3Z3z.,               ",
+            "       :tt:::tt333EE3               ",
+            "       Et:::ztt33EEEL @Ee.,      ..,",
+            "      ;tt:::tt333EE7 ;EEEEEEttttt33#",
+            "     :Et:::zt333EEQ. $EEEEEttttt33QL",
+            "     it::::tt333EEF @EEEEEEttttt33F ",
+            "    ;3=*^```\"*4EEV :EEEEEEttttt33@.",
+            "    ,.=::::!t=., ` @EEEEEEtttz33QF  ",
+            "   ;::::::::zt33)   \"4EEEtttji3P*  ",
+            "  :t::::::::tt33.:Z3z..  `` ,..g.   ",
+            "  i::::::::zt33F AEEEtttt::::ztF    ",
+            " ;:::::::::t33V ;EEEttttt::::t3     ",
+            " E::::::::zt33L @EEEtttt::::z3F     ",
+            "{3=*^```\"*4E3) ;EEEtttt:::::tZ`    ",
+            "             ` :EEEEtttt::::z7      ",
+            "                 \"VEzjt:;;z>*`     ",
+            "                                    "
+        ]
+    }
 }
 ```
 

@@ -1,254 +1,28 @@
 import cpuinfo
-from .logo import Logo
 from io import StringIO
 from rich.text import Text
 from time import time, sleep
-from rich.console import Console
 from itertools import zip_longest
-from  datetime import datetime, date
-from rich_argparse import RichHelpFormatter
-from concurrent.futures import ThreadPoolExecutor
 from .system import system, hostname, arch, release
-import os, re, sys, json, ctypes, random, argparse, requests, subprocess
+from concurrent.futures import ThreadPoolExecutor
+import os, re, sys, json, ctypes, requests, subprocess
+from .config import (
+    CONFIG_PATH,
+    color_codes,
+    window_rows,
+    window_size,
+    pyversion,
+    console,
+    cftime,
+    today,
+    color,
+    align,
+    logo,
+    args
+)
 
 if not system == "android":
     import psutil
-
-logo = Logo()
-console = Console()  # Create a Console object for rich console output
-pyversion = sys.version.split()[0]  # Get the Python version
-window_rows, window_columns = os.get_terminal_size()  # Get the size of the terminal window
-window_size = f"{window_rows}×{window_columns}"
-
-# Define custom color using hex code
-RichHelpFormatter.styles = {
-    "argparse.args": "#60bfff b",
-    "argparse.help": "#d2ddff",
-    "argparse.metavar": "#9e9e9e",
-    "argparse.text": "underline"
-}
-
-HOME = os.path.expanduser("~")  # Get the path to the user's home directory
-# Construct the path to the configuration file within the user's home directory
-CONFIG_PATH = os.path.join(HOME, ".twidgets.json")
-
-# Check if the configuration file exists
-if not os.path.isfile(CONFIG_PATH):
-    # If the configuration file does not exist, create it
-    with open(CONFIG_PATH, "w") as f:
-        # Open the configuration file in write mode and write an empty string to it
-        f.write("")
-
-try:
-    weather_api = json.load(open(CONFIG_PATH))["weather_api"]
-except Exception:
-    weather_api = None
-
-text_mode = {
-    "detailed": "includes extended information",
-    "compact": "short, less detailed"
-}
-color_mode = ["normal", "vivid", "random", "custom"]
-align_mode = ["left", "center"]
-direction_mode = ["row", "column"]
-
-parser = argparse.ArgumentParser(
-    description="A fully functional program for Terminal to show information about system, display, shell, package and many more.",
-    epilog="See full documentation at: https://github.com/imegeek/terminal-widgets",
-    formatter_class=RichHelpFormatter
-)
-
-parser.add_argument(
-    "--configs",
-    action='store_true',
-    help="Show the configuration file."
-)
-
-parser.add_argument(
-    "--widgets",
-    action='store_true',
-    help="Show build-in widgets and it's values."
-)
-
-parser.add_argument(
-    "--stdout",
-    action='store_true',
-    help="Turn of all colors and disable any ASCII, printing only texts."
-)
-
-parser.add_argument(
-    "--json",
-    action='store_true',
-    help="Shows widgets output as JSON object."
-)
-
-parser.add_argument(
-    "--no-badge",
-    action='store_true',
-    help="Show widgets without badge style."
-)
-
-parser.add_argument(
-    "--color-bars",
-    action='store_true',
-    help="Show color bars in terminal widgets."
-)
-
-parser.add_argument(
-    "--text",
-    choices=[key for key in text_mode],
-    default=list(text_mode.keys())[-1],
-    metavar=text_mode,
-    help="Choose text mode for terminal widgets. (default: compact)"
-)
-
-parser.add_argument(
-    "--color",
-    choices=color_mode,
-    default=color_mode[0],
-    metavar=color_mode,
-    help="Choose color mode for terminal widgets. (default: normal)"
-)
-
-parser.add_argument(
-    "--logo",
-    choices=logo.list(),
-    default=system,
-    metavar=logo.list(),
-    help="Choose an logo art that appear before widgets. ( default: auto (system default logo) )"
-)
-
-parser.add_argument(
-    "--show",
-    choices=["logo", "widgets"],
-    metavar=["logo", "widgets"],
-    default=["logo", "widgets"],
-    help="Specify what to show: 'logo' or 'widgets'."
-)
-
-parser.add_argument(
-    "--align",
-    choices=align_mode,
-    metavar=align_mode,
-    help="Choose align mode for terminal widgets. (default: center)"
-)
-
-parser.add_argument(
-    "--direction",
-    choices=direction_mode,
-    default=direction_mode[-1],
-    metavar=direction_mode,
-    help="Choose direction mode for terminal widgets. (default: row)"
-)
-
-parser.add_argument(
-    "--weather",
-    dest="location",
-    metavar="location",
-    help="Set weather location to show in widgets."
-)
-
-parser.add_argument(
-    "--weather-api",
-    default=weather_api,
-    metavar="API_KEY",
-    help="Set Open Weather API KEY."
-)
-
-parser.add_argument(
-    "--bypass-system-api",
-    action='store_true',
-    help="Turn off API checking for required system."
-)
-
-parser.add_argument(
-    "-c", "--config",
-    metavar="file",
-    help="Specify the JSON configuration file to load."
-)
-
-parser.add_argument(
-    "--column",
-    type=int,
-    default=5,
-    metavar="length",
-    help="Specify the number of widget that will be displayed for each row."
-)
-
-parser.add_argument(
-    "--column-gap",
-    type=int,
-    default=2,
-    metavar="length",
-    help="Specify the gap between widgets that will be displayed for each column."
-)
-
-parser.add_argument(
-    "--row-gap",
-    type=int,
-    default=1,
-    metavar="length",
-    help="Specify the gap between widgets that will be displayed for each row."
-)
-
-parser.add_argument(
-    "--margin",
-    type=lambda x: min(int(x), 10),
-    default=0,
-    metavar="length",
-    help="Specify the number of whitespaces line that will be displayed before and after execute."
-)
-
-args = parser.parse_args()  # Parse the command-line arguments
-
-if args.column < 1:
-    print("Ensure that the length of the column is atleast one.")
-    sys.exit(1)
-
-if args.column_gap < 1:
-    print("Ensure that the length of the column gap is atleast one.")
-    sys.exit(1)
-
-if args.align:
-    align = args.align
-else:
-    align = "center"
-
-if args.direction == "row":
-    align = "left"
-    if not args.align == "left" and args.align:
-        print(f"The align: '{args.align}' setting is only compatible with a direction: 'column'.")
-        sys.exit(1)
-
-if args.location and not args.weather_api:
-    console.print(f"Set Open Weather API_KEY through argument or config file to proceed.\n[b]argument[/]: --weather-api <API_KEY>\n[b]config file[/]: \"weather_api\": \"<API_KEY>\" at [b u]{CONFIG_PATH}[/]\n\nGet API_KEY at https://openweathermap.org/api")
-    sys.exit(1)
-
-# Check if a custom configuration file path is provided as a command-line argument
-if args.config:
-    # Assign the provided file path to the 'file' variable
-    file = args.config
-
-    # Check if the provided file exists
-    if os.path.isfile(file):
-        # If the file exists, update the CONFIG_PATH variable with the provided file path
-        CONFIG_PATH = file
-    else:
-        # If the file does not exist, print an error message and exit the program
-        print(f"'{file}' does not exist.\nPlease provide a valid file path.")
-        sys.exit(1)
-
-current_time = datetime.now()  # Get the current time
-
-if args.text == "detailed":
-    # Format the time to include AM/PM
-    __time__ = current_time.strftime("%I:%M %p")
-    # Get today's date and format it as "Day of the week, Month Day"
-    today = date.today().strftime("%a, %D")
-else:
-    __time__ = f"{current_time.hour}:{current_time.minute}"  # Format the current time as hours:minutes
-    # Get today's date and format it as "Day of the week, Month Day"
-    today = date.today().strftime("%a, %b %d")
 
 def contains_escape_code(text):
     # Extended pattern for ANSI and ASCII escape codes, including cursor movements and other control codes
@@ -305,136 +79,6 @@ def print_align(string, source=console.width, align=align, end=""):
     if end == "\r":
         return end + " " * int(len(line) + len(padding))
     # console.print(*aligned_lines, end=end)
-
-def generate_random_color(colors, min_distance=100):
-    while True:
-        # Generate minimal light random colors
-        r = random.randint(0, 255)
-        g = random.randint(0, 255)
-        b = random.randint(0, 255)
-        
-        # Ensure minimal light values
-        while r + g + b < 384:
-            r = random.randint(0, 255)
-            g = random.randint(0, 255)
-            b = random.randint(0, 255)
-        
-        new_color = (r, g, b)
-        
-        # Check dissimilarity with existing colors
-        dissimilar = all(color_distance(new_color, existing_color) >= min_distance for existing_color in colors)
-        if dissimilar:
-            return new_color
-
-def color_distance(color1, color2):
-    # Calculate Euclidean distance in RGB space
-    return sum((a - b) ** 2 for a, b in zip(color1, color2)) ** 0.5
-
-def hex_to_rgb_ansi(val, layout):
-    if not val == 0:
-        # Convert hex color to RGB
-        val = val.lstrip('#')
-        rgb_color = tuple(int(val[i:i+2], 16) for i in (0, 2, 4))
-
-        # Create ANSI escape sequence for the RGB color
-        return f'\033[{layout};2;{rgb_color[0]};{rgb_color[1]};{rgb_color[2]}m'
-    else:
-        return f"\033[{val}m"
-
-custom_colors = {
-    "red": None,
-    "green": None,
-    "yellow": None,
-    "sky": None,
-    "purple": None,
-    "cyan": None
-}
-
-black   = "#505050"
-white  = "#d6d6d6"
-
-if args.color == "normal":
-    # sets the normal colors
-    red    = "#df6b78"
-    green  = "#9ACB73"
-    yellow = "#F2CD80"
-    sky    = "#8AAED2"
-    purple = "#b790ff"
-    cyan   = "#8EC8D8"
-
-# Check if the color argument is set to "vivid"
-elif args.color == "vivid":
-    # sets the vivid colors
-    red    = "#D8425C"
-    green  = "#8BC455"
-    yellow = "#f8d255"
-    sky    = "#6AA1DA"
-    purple = "#a06efc"
-    cyan   = "#6EBEDF"
-
-elif args.color == "random":
-    # Generate random colors ensuring at least 100 distance between each color
-    num_colors = 6
-    random_colors = []
-    while len(random_colors) < num_colors:
-        new_color = generate_random_color(random_colors, min_distance=100)
-        random_colors.append(new_color)
-
-    # Sets random colors as hexadecimal values
-    for name, color in zip(custom_colors, random_colors):
-        r, g, b = color
-        hex_color = "#{:02x}{:02x}{:02x}".format(r, g, b)
-        globals()[name] = hex_color
-
-# Check if the color argument is set to "custom"
-elif args.color == "custom":
-    try:
-        # Load custom colors from the configuration file
-        ncolors = json.load(open(CONFIG_PATH))["colors"]
-
-        # Update custom_colors and global variables with the loaded custom colors
-        for name in ncolors:
-            custom_colors[name] = ncolors[name]
-            globals()[name] = ncolors[name]
-
-        # Check if any custom colors are not configured
-        nt_colors = [name for name, color in custom_colors.items() if not color]
-
-        # If there are unconfigured custom colors, print an error message and exit
-        if nt_colors:
-            print(f"Color {nt_colors} is not configured at: {CONFIG_PATH}")
-            sys.exit(0)
-    except Exception:
-        # If an exception occurs during loading or processing custom colors, print an error message and exit
-        print(f"colors not configured properly at: {CONFIG_PATH}")
-        sys.exit(0)
-
-# Check if the 'configs' argument is provided
-if args.configs:
-    # Open the configuration file and read its contents
-    with open(CONFIG_PATH) as f:
-        config = f.read().strip()
-
-        # Check if the configuration exists
-        if config:
-
-            # Print the configuration using the 'console' object if it's not empty
-            console.print(config, f"\n~{CONFIG_PATH}")
-        else:
-            # Print a message if no configuration is found
-            print("No configuration found.")
-    sys.exit(0)
-
-color_codes = {
-    "white":   white,
-    "black":   black,
-    "red":     red,      
-    "green":   green,  
-    "yellow":  yellow,
-    "sky":     sky,      
-    "purple":  purple,
-    "cyan":    cyan
-}
 
 def is_superuser():
     """
@@ -493,13 +137,9 @@ def convert_size(size_in_bytes):
 margin = "\n"*args.margin
 
 try:
-    custom_logo_path = json.load(open(CONFIG_PATH, encoding="utf-8"))["logo"]
-    custom_logo =  [ line.replace('\\33', '\033') for line in custom_logo_path]
-
-    if custom_logo:
-        logo =  "\n".join(custom_logo)
-except Exception:
     logo = logo.select(args.logo).format(**color_codes)
+except Exception:
+    logo = logo.select(args.logo)
     
 if args.direction == "row":
     cleaned_logo = cleaned_string(logo)
@@ -553,15 +193,15 @@ def findStr(data, find):
     else:
         return fstr[0]
     
-def insert_dict(dict_, index, key, value):
+def insert_dict(dictionary, index, key, value):
     try:
-        dict_.pop(key)  # Remove the widget with the specified name from the widgets_set
+        dictionary.pop(key)  # Remove the dictionary item with the specified key.
     except Exception:
         pass
 
     # insert new key and value using keys() and values() methods
-    keys = list(dict_.keys())
-    values = list(dict_.values())
+    keys = list(dictionary.keys())
+    values = list(dictionary.values())
 
     # insert new key and value at the desired index
     keys.insert(index, key)
@@ -571,6 +211,7 @@ def insert_dict(dict_, index, key, value):
     return dict(zip(keys, values))
 
 class Icon():
+    net: str
     user    = ""
     host    = "󰇄"
     shell   = ""
@@ -589,7 +230,6 @@ class Icon():
     time    = ""
     date    = "󰃭"
     mute    = "󰖁"
-    color   = ""
 
     circle = [
     "", ""
@@ -603,8 +243,8 @@ class Icon():
     "󰁺","󰁻","󰁼","󰁽","󰁾","󰁿","󰂀","󰂁","󰂂","󰁹","󰂄"
     ]
 
-    battery = {str(index):value for index, value in enumerate(battery_list)}
-    battery["-1"] = battery.pop(str(len(battery) - 1))
+    battery = dict(enumerate(battery_list))
+    battery[-1] = battery.pop(len(battery) - 1)
 
     weather = {
     "Clear":"",
@@ -634,6 +274,9 @@ class Icon():
     # If the current system is not found in the dictionary, default to an status icon.
     os = os.get(system, status[2])
 
+    def __init__(self):
+        self.color = color
+
     def badge(self, text:str, color:str = None, icon:str = None, no_badge:str = args.no_badge):
         """
         Generate a badge with specified color, icon, and text.
@@ -656,8 +299,8 @@ class Icon():
             }
         else:
             badge = {
-                "left": f"[{black}]{self.circle[0]}[on {black}]",
-                "right": f"[/][{black}]{self.circle[1]}"
+                "left": f"[{self.color.black}]{self.circle[0]}[on {self.color.black}]",
+                "right": f"[/][{self.color.black}]{self.circle[1]}"
             }
 
         if icon and color and text:
@@ -1041,15 +684,18 @@ class System():
             
             # Parse the JSON response
             jq = req.json()
+            # print(json.dumps(jq, indent=4))
 
             # Check if the request was successful (status code 200)
             if req.status_code == 200:
                 # Extract weather type and temperature from the JSON response
                 weather_type = jq["weather"][0]["main"]
-                weather_temp = str(int(jq["main"]["temp"])) +" °C"
+                weather_temp = str(int(jq["main"]["temp"])) + "°C"
 
                 if args.text == "detailed":
-                    weather_temp = f"{weather_temp} {area.lower()}"
+                    weather_feel = jq["main"].get("feels_like", "")
+                    feels_like = f"feels like {int(weather_feel)}" + "°C" if weather_feel else ""
+                    weather_temp = f"{weather_temp} {feels_like}"
                 # Return weather type and temperature
                 return weather_type, weather_temp
             else:
@@ -1063,10 +709,10 @@ icon = Icon()
 badge = icon.badge
 
 def main():
-    global arch, cpu_info
+    global arch, cpu_info, color
 
     try:
-        if not any(var for var in [args.widgets, args.stdout, args.json]):
+        if not any(var for var in [args.stdout, args.json]):
             if "logo" in args.show:
                 logo_ = "\n" * args.margin + logo
                 print_align(logo_, end="\n")
@@ -1076,16 +722,17 @@ def main():
                         sys.stdout.write("\033[F")  # Move cursor up one line
 
         if "logo" == args.show:
-            for _ in range(logo_len):
-                print()
+            if args.direction == "row":
+                for _ in range(logo_len):
+                    print()
             sys.exit(0)
         
-        if not any(var for var in [args.widgets, args.stdout, args.json]):
+        if not any(var for var in [args.stdout, args.json]):
             # Construct the badge string
             if args.direction == "row":
                 sys.stdout.write(f"\033[{alongside_width}C")  # Move right the cursor
             
-            loading_info = badge(color=green, icon=icon.signal, text="getting info, wait")
+            loading_info = badge(color=color.green, icon=icon.signal, text="getting info, wait")
             
             if args.direction == "row":
                 loading_info_len = print_align(loading_info, align="left", end="\r")
@@ -1103,7 +750,7 @@ def main():
                     output = None
 
                 if output:
-                    console.print(badge(color=red, icon=icon.status[1], text="Termux:API not found, install to continue."))
+                    console.print(badge(color=color.red, icon=icon.status[1], text="Termux:API not found, install to continue."))
                     console.print("https://f-droid.org/en/packages/com.termux.api")
                     sys.exit(1)
 
@@ -1119,7 +766,7 @@ def main():
                     package = None
 
                 if not package:
-                    console.print(badge(color=red, icon=icon.status[1], text="termux-api package not found, install to continue."))
+                    console.print(badge(color=color.red, icon=icon.status[1], text="termux-api package not found, install to continue."))
                     sys.exit(1)
 
         # Get detailed CPU info
@@ -1182,103 +829,103 @@ def main():
         widgets_set = {
             "username": {
                 "text": username,
-                "color": red if is_superuser() else green,
+                "color": color.red if is_superuser() else color.green,
                 "icon": icon.user
             },
 
             "hostname": {
                 "text": hostname,
-                "color": green,
+                "color": color.green,
                 "icon": icon.host
             },
 
             "platform": {
                 "text": system + " " + release if args.text == "detailed" else system,
-                "color": cyan,
+                "color": color.cyan,
                 "icon": icon.os
             },
 
             "shell": {
                 "text": info.shell,
-                "color": red,
+                "color": color.red,
                 "icon": icon.shell
             },
 
             "python": {
                 "text": pyversion,
-                "color": sky,
+                "color": color.sky,
                 "icon": icon.python
             },
 
             "internet": {
                 "text": network,
-                "color": cyan,
+                "color": color.cyan,
                 "icon": icon.net
             },
 
             "package": {
                 "text": info.package,
-                "color": purple,
+                "color": color.purple,
                 "icon": icon.package
             },
 
             "window": {
                 "text": window_size,
-                "color": cyan,
+                "color": color.cyan,
                 "icon": icon.window
             },
 
             "arch": {
                 "text": arch,
-                "color": green,
+                "color": color.green,
                 "icon": icon.arch
             },
 
             "cpu": {
                 "text": info.cpu,
-                "color": yellow,
+                "color": color.yellow,
                 "icon": icon.cpu
             },
 
             "memory": {
                 "text": info.ram,
-                "color": cyan,
+                "color": color.cyan,
                 "icon": icon.ram
             },
 
             "storage": {
                 "text": info.disk,
-                "color": green,
+                "color": color.green,
                 "icon": icon.storage
             },
             
             "battery": {
                 "text": info.battery[1],
-                "color": sky,
-                "icon": icon.battery.get(str(info.battery[0]), None)
+                "color": color.sky,
+                "icon": icon.battery.get(info.battery[0], None)
             },
 
             "uptime": {
                 "text": info.uptime,
-                "color": yellow,
+                "color": color.yellow,
                 "icon": icon.uptime
             },
 
             "weather": {
                 "text": info.weather[1],
-                "color": yellow,
+                "color": color.yellow,
                 "icon": icon.weather.get(info.weather[0], None)
             },
 
             "time": {
-                "text": __time__,
-                "color": cyan,
+                "text": cftime,
+                "color": color.cyan,
                 "icon": icon.time
             },
 
             "date": {
                 "text": today,
-                "color": green,
+                "color": color.green,
                 "icon": icon.date
             }
         }
@@ -1389,17 +1036,21 @@ def main():
                 for name, widget in widget_addons.items():
                     # Retrieve widget properties from the widget configuration or set default values if not provided
                     text   = widget.get("text", None)
-                    exec_  = widget.get("exec", None)
+                    addon_exec  = widget.get("exec", None)
                     script = widget.get("script", None)
-                    color  = widget.get("color", "na")
+                    addon_color  = widget.get("color", "na")
                     addon_icon  = widget.get("icon", "na")
                     index  = widget.get("index", len(widgets))
 
-                    if exec_:
+                    if addon_exec:
                         # Execute the command and capture the output
-                        text = subprocess.run(exec_, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, check=True).stdout.strip()
-                        # Reset the exec_ variable to None to prevent further execution
-                        exec_ = None
+                        process = subprocess.run(addon_exec, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, check=True)
+                        if process.stdout:
+                            text = process.stdout.strip()
+                        else:
+                            # Print an error message indicating an invalid script
+                            console.print(f"invalid script for '{name}' widget addon at: {CONFIG_PATH}")
+                            sys.exit(1)
                         
                     elif script:
                         # Check if the script path is absolute and if the file exists
@@ -1432,46 +1083,40 @@ def main():
                             # If an exception occurs during script execution or output capture
                             # Restore sys.stdout to its original value
                             sys.stdout = stdout_backup
-                            # Print an error message indicating an invalid script
-                            console.print(f"invalid script for {name} widget addon at: {CONFIG_PATH}")
+                            # Print an error message indicating an invalid python code
+                            console.print(f"invalid python code for '{name}' widget addon at: {CONFIG_PATH}")
                             # Exit the program with an error status code
                             sys.exit(1)
 
-                    # Check if text is provided and icon is "na"
-                    if text and addon_icon == "na":
-                        # Construct the widget value with default icon
-                        value = badge(color=color, text=text)
-                        # Insert the widget into the widgets dictionary at the specified index
-                        widgets = insert_dict(widgets, index, name, value)
+                    # Check if text is provided
+                    if text:
+                        # Check if icon is "na"
+                        if addon_icon == "na":
+                            # Construct the widget value with default icon
+                            value = badge(color=addon_color, text=text)
+                            # Insert the widget into the widgets dictionary at the specified index
+                            widgets = insert_dict(widgets, index, name, value)
 
-                    # Check if text, color, and icon are provided
-                    elif text and not color == "na" and not addon_icon == "na":
-                        # Construct the widget value with provided icon
-                        value = badge(color=color, icon=addon_icon, text=text)
-                        # Insert the widget into the widgets dictionary at the specified index
-                        widgets = insert_dict(widgets, index, name, value)
-                    else:
-                        # Print an error message if the addon widget is not properly configured
-                        console.print(f"'{name}' addon widget not configured properly at: {CONFIG_PATH}")
-                        # Exit the program with an error status code
-                        sys.exit(1)
+                        # Check if text, addon_color, and addon_icon are provided
+                        elif not addon_color == "na" and not addon_icon == "na":
+                            # Construct the widget value with provided icon
+                            value = badge(color=addon_color, icon=addon_icon, text=text)
+                            # Insert the widget into the widgets dictionary at the specified index
+                            widgets = insert_dict(widgets, index, name, value)
+                        else:
+                            # Print an error message if the addon widget is not properly configured
+                            console.print(f"'{name}' addon widget not configured properly at: {CONFIG_PATH}")
+                            # Exit the program with an error status code
+                            sys.exit(1)
 
-                    # Insert the widget into the widgets_set dictionary with its properties
-                    widgets_set = insert_dict(widgets_set, len(widgets_set), name, {"text": text, "color": color, "icon": addon_icon})
+                        # Insert the widget into the widgets_set dictionary with its properties
+                        widgets_set = insert_dict(widgets_set, len(widgets_set), name, {"text": text, "color": addon_color, "icon": addon_icon})
 
             except Exception:
                 # Handle any exceptions that occur during addon widget configuration
                 console.print(f"addons not configured properly at: {CONFIG_PATH}")
                 # Exit the program with an error status code
                 sys.exit(1)
-                
-        if args.widgets:
-            # Convert the widgets_set dictionary to JSON format with indentation for readability
-            output = json.dumps(widgets_set, indent=2)
-            # Print the JSON output
-            print(output)
-            # Exit the program with a success status code
-            sys.exit(0)
 
         if args.json:
             # Convert the widgets_set dictionary to JSON format with indentation for readability
@@ -1523,7 +1168,7 @@ def main():
         print("\n"*(args.margin-1))
 
     except (EOFError, KeyboardInterrupt):
-        print_align(badge(color=red, icon=icon.status[1], text="Program interrupted."), align=align, end="\n\n")
+        print_align(badge(color=color.red, icon=icon.status[1], text="Program interrupted."), align=align, end="\n\n")
 
 if __name__ == "__main__":
     main()
